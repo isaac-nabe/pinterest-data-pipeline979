@@ -1,0 +1,5 @@
+# Ignores the Database login credentials
+db_creds.yaml
+
+# Ignores user_id.pem
+user_id.pem 
