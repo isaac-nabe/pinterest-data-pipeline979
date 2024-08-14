@@ -115,17 +115,23 @@ Created topic <UserID>.geo
 
 - **Step 2:** On your EC2 client, download the Confluent.io Amazon S3 Connector **and copy it to the S3 bucket** you have identified in the previous step.
 >Connect to your EC2 Instance in your terminal:
+
     ```
     ssh -i "your_key.pem" ec2-user@your-ec2-instance.amazonaws.com
     ```
+    
 >Download the S3 connector using the below:
+
     ```
     wget https://d2p6pa21dvn84.cloudfront.net/api/plugins/confluentinc/kafka-connect-s3/versions/10.5.13/confluentinc-kafka-connect-s3-10.5.13.zip
     ```
+    
 >Unzip the file by using the `unzip` command as shown below:
+
     ```
     unzip confluentinc-kafka-connect-s3-10.5.13.zip
     ```
+    
 
 - **Step 3:** Create your custom plugin in the MSK Connect console. For this project our AWS account only has permissions to create a custom plugin with the following name: `<your_UserId>-plugin`. Make sure to use this name when creating your plugin.
 >The plugin object can be input as:
@@ -243,17 +249,22 @@ Modify the `user_posting_emulation.py` file to send data to your Kafka topics us
 **In my case, what I did was**:
 >1. Define a method called `send_to_api()`.
 >2. Create a `config.py` file to hold all of the private parts of the code and added the API Invoke URLs into it like so (making sure to add `config.py` to `.gitignore`):
+
     ```
     BASE_API_INVOKE_URL = '<your_API_Invoke_URL>'
     PIN_API_INVOKE_URL = f'{BASE_API_INVOKE_URL}/topics/<your_ID>.pin'
     GEO_API_INVOKE_URL = f'{BASE_API_INVOKE_URL}/topics/<your_ID>.geo'
     USER_API_INVOKE_URL = f'{BASE_API_INVOKE_URL}/topics/<your_ID>.user'
     ```
->3. In `user_posting_emulation.py`, import the topic specific URLs from config:
+    
+>4. In `user_posting_emulation.py`, import the topic specific URLs from config:
+
     ```
     from config import PIN_API_INVOKE_URL, GEO_API_INVOKE_URL, USER_API_INVOKE_URL
     ```
->4. Within the `run_infinite_post_data_loop()` method, call the `send_to_api` method for each topic, making sure to add the 3 constants for each API Invoke URL:
+    
+>6. Within the `run_infinite_post_data_loop()` method, call the `send_to_api` method for each topic, making sure to add the 3 constants for each API Invoke URL:
+
     ```
     # Send data to the corresponding API URLs
         send_to_api(PIN_API_INVOKE_URL, pin_result)
@@ -270,6 +281,7 @@ Check data is sent to the cluster by running a Kafka consumer (one per topic). I
 
     - First, SSH into your EC2 instance where Kafka is installed.
     Navigate to the Kafka bin/ directory, where the Kafka scripts are located.
+
         ```
         cd /home/ec2-user/confluent-7.2.0/bin/
         ```
@@ -368,7 +380,11 @@ pinterest-data-pipeline979/
 ```
 
 ## Security
->- Ensure that your db_creds.yaml file is not uploaded to your repository by adding it to your .gitignore file.
+Ensure that the below files are not uploaded to your repository by adding them to your .gitignore file:
+>- `__pycache__/`
+>- `db_creds.yaml`
+>- `config.py`
+>- `user_id.pem`
 
 ## License
 
