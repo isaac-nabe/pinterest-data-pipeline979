@@ -2,4 +2,10 @@
 db_creds.yaml
 
 # Ignores user_id.pem
-user_id.pem 
+user_id.pem
+
+# Ignores kafka_prod_config.py
+config.py
+
+# Ignores pycache
+__pycache__/
