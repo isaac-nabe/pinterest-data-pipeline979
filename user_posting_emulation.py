@@ -7,8 +7,8 @@ import sqlalchemy
 from typing import Tuple
 import json
 
-# Import the topic name constants and other configuration details
-from config import PINTEREST_TOPIC, GEOLOCATION_TOPIC, USER_TOPIC, API_INVOKE_URL
+# Import the topic-specific URLs from config
+from config import PIN_API_INVOKE_URL, GEO_API_INVOKE_URL, USER_API_INVOKE_URL
 
 random.seed(100)
 
@@ -59,33 +59,32 @@ class AWSDBConnector:
 new_connector = AWSDBConnector()
 
 
-def send_to_api(topic: str, data: dict):
+def send_to_api(url: str, data: dict):
     """
-    Sends the data to the API, which will forward it to the MSK Cluster.
+    Sends the data to the API.
 
-    :param topic: The Kafka topic name to which the data should be sent.
+    :param url: The full API URL for the specific topic.
     :param data: The data to be sent.
     """
-    payload = {
-        "topic": topic,
-        "data": data
-    }
-
     # Manually serialize the payload to JSON format
-    json_payload = json.dumps(payload, default=str)
+    json_payload = json.dumps({
+        "records": [
+            {
+                "value": data
+            }
+        ]}, default=str)
 
     # Set the necessary headers
     headers = {'Content-Type': 'application/vnd.kafka.json.v2+json'}
 
     # Send the JSON payload to the API
-    response = requests.post(
-        API_INVOKE_URL, data=json_payload, headers=headers)
+    response = requests.post(url, data=json_payload, headers=headers)
 
     if response.status_code == 200:
-        print(f"Successfully sent data to topic {topic}.")
+        print(f"Successfully sent data to {url}.")
     else:
-        print(f"Failed to send data to topic {
-              topic}. Response: {response.text}")
+        print(response.status_code)
+        print(f"Failed to send data to {url}. Response: {response.text}")
 
 
 def run_infinite_post_data_loop():
@@ -117,10 +116,10 @@ def run_infinite_post_data_loop():
             for row in user_selected_row:
                 user_result = dict(row._mapping)
 
-            # Send data to Kafka topics using the API
-            send_to_api(PINTEREST_TOPIC, pin_result)
-            send_to_api(GEOLOCATION_TOPIC, geo_result)
-            send_to_api(USER_TOPIC, user_result)
+            # Send data to the corresponding API URLs
+            send_to_api(PIN_API_INVOKE_URL, pin_result)
+            send_to_api(GEO_API_INVOKE_URL, geo_result)
+            send_to_api(USER_API_INVOKE_URL, user_result)
 
             print("Data sent to API for Kafka ingestion")
 

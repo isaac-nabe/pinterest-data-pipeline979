@@ -15,6 +15,7 @@ This project involves setting up an infrastructure that emulates the data proces
   - [Milestone 2: AWS Integration](#milestone-2-aws-integration)
   - [Milestone 3: Configuring the EC2 Kafka Client](#milestone-3-configuring-the-ec2-kafka-client)
   - [Milestone 4: Connect an MSK Cluster to an S3 Bucket](#milestone-4-connect-an-msk-cluster-to-an-s3-bucket)
+  - [Milestone 5: Batch Processing: Configure an API Gateway](#milestone-5-batch-processing-configure-an-api-gateway)
 - [Security](#security)
 - [Contributing](#contributing)
 - [License](#license)
@@ -42,7 +43,7 @@ The project includes three main data tables:
 ### Milestone 1: Setting Up the Environment
 **Run the Script:** Execute `user_posting_emulation.py` to simulate user posts and print out `pin_result`, `geo_result`, and `user_result`. These outputs represent one entry in their corresponding tables.
 
-**Database Credentials:** Create a separate `db_creds.yaml` file for the database credentials (HOST, USER, PASSWORD values). Ensure this file is included in your `.gitignore` to avoid uploading sensitive details to GitHub.
+**Database Credentials:** Create a separate `db_creds.yaml` file for the database credentials (`HOST`, `USER`, `PASSWORD` values). Ensure this file is included in your `.gitignore` to avoid uploading sensitive details to GitHub.
 
 ### Milestone 2: AWS Integration
 **Sign into AWS to start building the pipeline by following these steps:**
@@ -110,23 +111,27 @@ Created topic <UserID>.geo
 ### Milestone 4: Connect an MSK Cluster to an S3 Bucket
 **Task 1:** Create a custom plugin with MSK connect
 
-1. **Step 1:** Go to the S3 console and find the bucket that contains your UserId. The bucket name should have the following format: `user-<your_UserId>-bucket`. Make a note of the bucket name, as you will need it in the next steps.
+- **Step 1:** Go to the S3 console and find the bucket that contains your UserId. The bucket name should have the following format: `user-<your_UserId>-bucket`. Make a note of the bucket name, as you will need it in the next steps.
 
-2. **Step 2:** On your EC2 client, download the Confluent.io Amazon S3 Connector **and copy it to the S3 bucket** you have identified in the previous step.
+- **Step 2:** On your EC2 client, download the Confluent.io Amazon S3 Connector **and copy it to the S3 bucket** you have identified in the previous step.
 >Connect to your EC2 Instance in your terminal:
-```
-ssh -i "your_key.pem" ec2-user@your-ec2-instance.amazonaws.com
-```
+    ```
+    ssh -i "your_key.pem" ec2-user@your-ec2-instance.amazonaws.com
+    ```
 >Download the S3 connector using the below:
-```
-wget https://d2p6pa21dvn84.cloudfront.net/api/plugins/confluentinc/kafka-connect-s3/versions/10.5.13/confluentinc-kafka-connect-s3-10.5.13.zip
-```
+    ```
+    wget https://d2p6pa21dvn84.cloudfront.net/api/plugins/confluentinc/kafka-connect-s3/versions/10.5.13/confluentinc-kafka-connect-s3-10.5.13.zip
+    ```
+>Unzip the file by using the `unzip` command as shown below:
+    ```
+    unzip confluentinc-kafka-connect-s3-10.5.13.zip
+    ```
 
-3. **Step 3:** Create your custom plugin in the MSK Connect console. For this project our AWS account only has permissions to create a custom plugin with the following name: `<your_UserId>-plugin`. Make sure to use this name when creating your plugin.
+- **Step 3:** Create your custom plugin in the MSK Connect console. For this project our AWS account only has permissions to create a custom plugin with the following name: `<your_UserId>-plugin`. Make sure to use this name when creating your plugin.
 >The plugin object can be input as:
-```
-s3://<user_bucket>>/confluentinc-kafka-connect-s3-10.5.13.zip
-```
+    ```
+    s3://<user_bucket>>/confluentinc-kafka-connect-s3-10.5.13.zip
+    ```
 
 **Task 2:** Create a connector with MSK connect
 
@@ -158,13 +163,205 @@ s3.bucket.name=`<BUCKET_NAME>`
 
 - Now that you have built the plugin-connector pair, data passing through the IAM authenticated cluster, will be automatically stored in the designated S3 bucket.
 
+
+### Milestone 5: Batch Processing: Configure an API Gateway
+
+**Task 1**: Build a Kafka REST proxy integration for your API.
+
+For this project, you will not need to create your own API, as you have been provided with one already. The API name will be the same as your UserId.
+
+- **Step 1**:  
+   Create a resource that allows you to build a PROXY integration for your API.
+
+- **Step 2**:  
+   For the previously created resource, create an HTTP ANY method. When setting up the Endpoint URL, make sure to copy the correct PublicDNS from the EC2 machine you have been working on in the previous milestones. Remember, this EC2 should have the same name as your UserId.
+
+- **Step 3**:  
+   Deploy the API and make a note of the Invoke URL, as you will need it in a later task.
+
+**Task 2**: Set up the Kafka REST Proxy on the EC2 Client
+
+Now that you have set up the Kafka REST Proxy integration for your API, you need to set up the Kafka REST Proxy on your EC2 client machine.
+
+- **Step 1**:  
+   Download and extract the Confluent package for the Kafka REST Proxy on your EC2 client machine using the following command:
+   ```bash
+   wget https://packages.confluent.io/archive/7.2/confluent-7.2.0.tar.gz
+   tar -xzf confluent-7.2.0.tar.gz
+
+- **Step 2**:
+    Configure the kafka-rest.properties file to allow the REST proxy to perform IAM authentication to the MSK cluster. Use the following commands to navigate and edit the configuration:
+    ```
+    cd confluent-7.2.0/
+    cd bin/
+    nano kafka-rest.properties
+    ```
+
+    Make sure the kafka-rest.properties file includes the following configuration:
+    ```
+    zookeeper.connect=<your_zookeeper_string>
+
+    bootstrap.servers=<your_bootstrap_string>
+
+    # Configure interceptor classes for sending consumer and producer metrics to Confluent Control Center
+    # Make sure that monitoring-interceptors-<version>.jar is on the Java class path
+    #consumer.interceptor.classes=io.confluent.monitoring.clients.interceptor.MonitoringConsumerInterceptor
+    #producer.interceptor.classes=io.confluent.monitoring.clients.interceptor.MonitoringProducerInterceptor
+
+    # Sets up TLS for encryption and SASL for authN.
+    client.security.protocol = SASL_SSL
+
+    # Identifies the SASL mechanism to use.
+    client.sasl.mechanism = AWS_MSK_IAM
+
+    # Binds SASL client implementation.
+    client.sasl.jaas.config = software.amazon.msk.auth.iam.IAMLoginModule required awsRoleArn="<your_IAM_access_role_ARN>";
+
+    # Encapsulates constructing a SigV4 signature based on extracted credentials.
+    # The SASL client bound by "sasl.jaas.config" invokes this class.
+    client.sasl.client.callback.handler.class = software.amazon.msk.auth.iam.IAMClientCallbackHandler
+    ```
+- **Step 3**:
+    Start the REST proxy on the EC2 client machine by doing the following:
+    1. Navigate to the `bin` folder within the `confluent-7.2.0` folder:
+    ```
+    cd confluent-7.2.0/
+    cd bin/
+    ```
+    2. Run the following command:
+    ```
+    ./kafka-rest-start /home/ec2-user/confluent-7.2.0/etc/kafka-rest/kafka-rest.properties
+    ```
+
+**Task 3**: Send Data to the API
+
+You are ready to send data to your API, which in turn will send the data to the MSK Cluster using the plugin-connector pair previously created.
+
+- **Step 1**:
+Modify the `user_posting_emulation.py` file to send data to your Kafka topics using your API Invoke URL. You should send data from the three tables to their corresponding Kafka topic.
+
+**In my case, what I did was**:
+>1. Define a method called `send_to_api()`.
+>2. Create a `config.py` file to hold all of the private parts of the code and added the API Invoke URLs into it like so (making sure to add `config.py` to `.gitignore`):
+    ```
+    BASE_API_INVOKE_URL = '<your_API_Invoke_URL>'
+    PIN_API_INVOKE_URL = f'{BASE_API_INVOKE_URL}/topics/<your_ID>.pin'
+    GEO_API_INVOKE_URL = f'{BASE_API_INVOKE_URL}/topics/<your_ID>.geo'
+    USER_API_INVOKE_URL = f'{BASE_API_INVOKE_URL}/topics/<your_ID>.user'
+    ```
+>3. In `user_posting_emulation.py`, import the topic specific URLs from config:
+    ```
+    from config import PIN_API_INVOKE_URL, GEO_API_INVOKE_URL, USER_API_INVOKE_URL
+    ```
+>4. Within the `run_infinite_post_data_loop()` method, call the `send_to_api` method for each topic, making sure to add the 3 constants for each API Invoke URL:
+    ```
+    # Send data to the corresponding API URLs
+        send_to_api(PIN_API_INVOKE_URL, pin_result)
+        send_to_api(GEO_API_INVOKE_URL, geo_result)
+        send_to_api(USER_API_INVOKE_URL, user_result)
+    ```
+
+- **Step 2**:
+Check data is sent to the cluster by running a Kafka consumer (one per topic). If everything has been set up correctly, you should see messages being consumed.
+
+**Probably the simplest way to do this is as follows**:
+
+1. Navigate to the Kafka bin/ Directory:
+
+    - First, SSH into your EC2 instance where Kafka is installed.
+    Navigate to the Kafka bin/ directory, where the Kafka scripts are located.
+        ```
+        cd /home/ec2-user/confluent-7.2.0/bin/
+        ```
+
+2. Run a Kafka Consumer:
+
+    - Use the kafka-console-consumer.sh script to start a consumer for each of your topics. The consumer will connect to your Kafka cluster and read the messages from the specified topic.
+    For example, to consume messages from the <your_UserId>.pin topic, you would run:
+
+        ```
+        ./kafka-console-consumer.sh --bootstrap-server <your_bootstrap_server> --topic <your_UserId>.pin --from-beginning --consumer.config client.properties
+        ```
+    Replace <your_bootstrap_server> with your actual bootstrap server address and <your_UserId>.pin with the correct topic name.
+
+    - You should see messages being consumed and printed to the terminal. This output indicates that data is successfully being sent to the Kafka cluster and the consumer is reading it.
+
+3. Repeat for Each Topic:
+
+    - Run a separate consumer for each of your Kafka topics (e.g., <your_UserId>.geo, <your_UserId>.user) to ensure that data is being ingested across all topics.
+        ```
+        ./kafka-console-consumer.sh --bootstrap-server <your_bootstrap_server> --topic <your_UserId>.geo --from-beginning --consumer.config client.properties
+        ```
+        ```
+        ./kafka-console-consumer.sh --bootstrap-server <your_bootstrap_server> --topic <your_UserId>.user --from-beginning --consumer.config client.properties
+        ```
+
+- **Step 3**:
+Check if data is getting stored in the S3 bucket. Notice the folder organization (e.g., `topics/<your_UserId>.pin/partition=0/`) that your connector creates in the bucket. Make sure your database credentials are encoded in a separate, hidden `db_creds.yaml` file.
+
+## Troubleshooting and Solutions
+
+During the development of this project, I encountered several issues that required troubleshooting and adjustments. Below is a summary of the problems I faced and how I resolved them.
+
+### Issues  Encountered:
+
+#### Milestone 5:
+
+#### "No Authentication Token" Error:
+
+- **Problem**: I received this error because I initially tried to access the base API URL without including the specific topic path. AWS requires requests to be directed to specific endpoints (or "folders") where I have the correct permissions. Attempting to access the base URL directly led to authentication errors.
+- **Impact**: This prevented the API from recognizing the request as authorized, resulting in an authentication error.
+
+#### "Unrecognized Field" Errors:
+
+- **Problem**: The API returned errors like `{"error_code":422,"message":"Unrecognized field: ind"}` because the data I was sending included fields that the API did not expect or recognize.
+- **Impact**: These errors caused the API to reject the data since it was not in the correct format or structure that AWS was expecting.
+
+#### Incorrect Payload Structure:
+
+- **Problem**: Initially, the payload I sent to AWS was not formatted according to AWS's expectations. Specifically, AWS expects data to be wrapped in a structure like this:
+  ```json
+  {
+    "records": [
+      {
+        "value": {
+          // your data here
+        }
+      }
+    ]
+  }
+- **Impact**: Without the correct structure, the API couldn't process the data, leading to errors in data ingestion.
+
+## How I Fixed These Issues
+#### Correct Targeting of API Endpoints:
+- **Solution**: I updated the code to correctly define and use specific API URLs (`PIN_API_INVOKE_URL`, `GEO_API_INVOKE_URL`, `USER_API_INVOKE_URL`) that point directly to the appropriate Kafka topic endpoints.
+- **Benefit**: By using the full URLs for the specific topics, I avoided the "No Authentication Token" error, as the code now targets the endpoints where my authentication token is valid and I have the necessary permissions.
+#### Filtering and Formatting the Data:
+- **Solution**: To resolve the issue with unrecognized fields, I ensured that the data sent to the API only contains the fields that are expected. Additionally, I wrapped the payload in the AWS-specific structure:
+```
+json_payload = json.dumps({
+    "records": [
+        {
+            "value": data  
+        }                     
+    ]
+}, default=str)
+```
+- **Benefit**: This ensured that the API received the data in the format it expects, eliminating errors related to unrecognized fields.
+
+#### Proper Payload Structure:
+- **Solution**: I manually serialized the payload into a JSON format that matches AWS's expected structure, specifically placing it within a "records" list where each record contains a "value" key with the data.
+- **Benefit**: Proper formatting allowed AWS to correctly process and ingest the data, ensuring that my application can successfully send data to the Kafka topics without encountering format-related errors.
+
 ## File Structure
 
 ```
 pinterest-data-pipeline979/
 ├── user_posting_emulation.py
 ├── .gitignore/
+│   ├── __pycache__/
 │   ├── db_creds.yaml
+│   ├── config.py
 │   └── user_id.pem
 ├── README.md
 └── requirements.txt
