@@ -1,3 +1,6 @@
+# Ignores pycache
+__pycache__/
+
 # Ignores the Database login credentials
 db_creds.yaml
 
