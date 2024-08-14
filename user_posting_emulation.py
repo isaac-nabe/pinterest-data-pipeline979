@@ -101,30 +101,4 @@ def run_infinite_post_data_loop():
             pin_selected_row = connection.execute(pin_string)
 
             for row in pin_selected_row:
-                pin_result = dict(row._mapping)
-
-            geo_string = text(
-                f"SELECT * FROM geolocation_data LIMIT {random_row}, 1")
-            geo_selected_row = connection.execute(geo_string)
-
-            for row in geo_selected_row:
-                geo_result = dict(row._mapping)
-
-            user_string = text(
-                f"SELECT * FROM user_data LIMIT {random_row}, 1")
-            user_selected_row = connection.execute(user_string)
-
-            for row in user_selected_row:
-                user_result = dict(row._mapping)
-
-            # Send data to Kafka topics using the API
-            send_to_api(PINTEREST_TOPIC, pin_result)
-            send_to_api(GEOLOCATION_TOPIC, geo_result)
-            send_to_api(USER_TOPIC, user_result)
-
-            print("Data sent to API for Kafka ingestion")
-
-
-if __name__ == "__main__":
-    run_infinite_post_data_loop()
-    print('Working')
+               
