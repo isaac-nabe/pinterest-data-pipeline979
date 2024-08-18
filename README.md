@@ -473,6 +473,7 @@ json_payload = json.dumps({
 ```
 pinterest-data-pipeline979/
 ├── user_posting_emulation.py
+├── mount_s3_bucket.ipynb
 ├── .gitignore/
 │   ├── __pycache__/
 │   ├── db_creds.yaml
