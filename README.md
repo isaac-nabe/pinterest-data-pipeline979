@@ -16,6 +16,7 @@ This project involves setting up an infrastructure that emulates the data proces
   - [Milestone 3: Configuring the EC2 Kafka Client](#milestone-3-configuring-the-ec2-kafka-client)
   - [Milestone 4: Connect an MSK Cluster to an S3 Bucket](#milestone-4-connect-an-msk-cluster-to-an-s3-bucket)
   - [Milestone 5: Batch Processing: Configure an API Gateway](#milestone-5-batch-processing-configure-an-api-gateway)
+  - [Milestone 6: Mounting S3 Bucket to Databricks and Loading Data](#milestone-6-mounting-s3-bucket-to-databricks-and-loading-data)
 - [Security](#security)
 - [Contributing](#contributing)
 - [License](#license)
@@ -310,6 +311,108 @@ Check data is sent to the cluster by running a Kafka consumer (one per topic). I
 
 - **Step 3**:
 Check if data is getting stored in the S3 bucket. Notice the folder organization (e.g., `topics/<your_UserId>.pin/partition=0/`) that your connector creates in the bucket. Make sure your database credentials are encoded in a separate, hidden `db_creds.yaml` file.
+
+
+## Milestone 6: Mounting S3 Bucket to Databricks and Loading Data
+
+In this milestone, the task was to securely mount an S3 bucket to Databricks and load data into Spark DataFrames for subsequent analysis. This process involved using AWS credentials stored in a Delta table to mount the S3 bucket and then reading JSON data into separate DataFrames.
+
+### Steps Involved
+
+1. **Loading AWS Credentials from Delta Table:**
+   - The AWS Access Key and Secret Access Key are securely loaded from a Delta table stored at a specified path within Databricks.
+
+2. **Encoding the Secret Key:**
+   - The secret key is URL-encoded to ensure secure transmission when constructing the S3 source URL.
+
+3. **Constructing the S3 Source URL:**
+   - A URL is constructed that incorporates the AWS credentials, which allows Databricks to access the specified S3 bucket.
+
+4. **Mounting the S3 Bucket:**
+   - The S3 bucket is mounted to the Databricks File System (DBFS) at a specified mount point, making the contents of the bucket accessible via DBFS.
+
+5. **Loading JSON Data into DataFrames:**
+   - JSON files from the mounted S3 bucket are loaded into three separate DataFrames:
+     - `df_pin`: Contains Pinterest post data.
+     - `df_geo`: Contains geolocation data.
+     - `df_user`: Contains user data.
+
+### Example Code for DataBricks Notebook
+
+    ```
+    # Step 1: Load AWS credentials from Delta table
+    delta_table_path = "dbfs:/<path_to_authentication_credentials>"
+    aws_keys_df = spark.read.format("delta").load(delta_table_path)
+
+    # Step 2: Extract and encode credentials
+    ACCESS_KEY = aws_keys_df.select('Access key ID').collect()[0]['Access key ID']
+    SECRET_KEY = aws_keys_df.select('Secret access key').collect()[0]['Secret access key']
+    ENCODED_SECRET_KEY = urllib.parse.quote(string=SECRET_KEY, safe="")
+
+    # Step 3: Define the S3 bucket name and mount point
+    AWS_S3_BUCKET = "<your_user_bucket>"
+    MOUNT_NAME = "/mnt/<your_mount_name>"
+    SOURCE_URL = f"s3n://{ACCESS_KEY}:{ENCODED_SECRET_KEY}@{AWS_S3_BUCKET}"
+
+    # Step 4: Mount the S3 bucket
+    dbutils.fs.mount(SOURCE_URL, MOUNT_NAME)
+
+    # Step 5: Define paths to the JSON files in the S3 bucket
+    path_pin = f"{MOUNT_NAME}/topics/<your_UserId>.pin/partition=0/"
+    path_geo = f"{MOUNT_NAME}/topics/<your_UserId>.geo/partition=0/"
+    path_user = f"{MOUNT_NAME}/topics/<your_UserId>.user/partition=0/"
+
+    # Step 6: Disable format checks during the reading of Delta tables
+    %sql
+    SET spark.databricks.delta.formatCheck.enabled=false
+
+    # Step 7: Load the JSON data into DataFrames with schema inference
+    try:
+        df_pin = spark.read.format("json") \
+            .option("inferSchema", "true") \
+            .load(path_pin)
+        
+        df_geo = spark.read.format("json") \
+            .option("inferSchema", "true") \
+            .load(path_geo)
+        
+        df_user = spark.read.format("json") \
+            .option("inferSchema", "true") \
+            .load(path_user)
+
+        # Display loaded data to verify successful loading
+        print("Pinterest Data:")
+        display(df_pin)
+
+        print("Geolocation Data:")
+        display(df_geo)
+
+        print("User Data:")
+        display(df_user)
+
+    except Exception as e:
+    print(f"Error loading data from S3: {str(e)}")
+    ```
+### Output
+Upon successful execution, the script prints out sample data from each DataFrame to verify that the JSON files have been loaded correctly.
+
+### Notes
+- Make sure to replace placeholders like `your_user_bucket`, `your_mount_name`, and `your_UserId` with actual values corresponding to your S3 bucket, mount point, and user ID.
+
+- If the mounting fails, an error message will be printed with the details.
+
+- By completing this milestone, the data required for analysis has been successfully loaded into Databricks, making it ready for further processing and querying.
+
+- If you ever have an error saying you've already mounted the bucket, and for whatever reason need to unmount then re-mount, you can use the code: `(Optional): Unmount S3 bucket
+If you want to unmount the S3 bucket, run the following code:
+    ```
+    dbutils.fs.unmount("/mnt/mount_name")
+    ```
+- **Security**: 
+    - ***DO NOT UNDER ANY CIRCUMSTANCE UPLOAD YOUR RAW CREDENTIALS ANYWHERE, ESPECIALLY TOGETHER WITH YOUR CODE ON GITHUB. EXPOSED        CREDENTIALS ARE JUST ABOUT THE WORST THING A PROGRAMMER CAN DO.***
+    - Databricks is generally quite secure and you would need access to the workspace in order to access the credentials.
+    - However, as an extra precaution, you could create 2 notebooks in DataBricks, one for credentials, and the other to run the mounting script - using the command `%run <file_path_to_credentials_notebook>` to securely import the credentials without exposing them. If you do this though, the cell that you run this command in cannot contain any comments, as there isa bug that prevents it from reading the file path correctly.
+    - As a general rule, pursue implementing as much security as you reasonably can.
 
 ## Troubleshooting and Solutions
 
