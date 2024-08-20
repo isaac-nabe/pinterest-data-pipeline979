@@ -9,17 +9,3 @@ user_id.pem
 
 # Ignores kafka_prod_config.py
 config.py
-
-# Ignores the images but lets us use them in github
-task1_result.png
-task2_result.png
-task3_result.png
-task4_result.png
-task5_result.png
-task6_1_result.png
-task6_2_result.png
-task7_result.png
-task8_result.png
-task9_result.png
-task10_result.png
-task11_result.png
