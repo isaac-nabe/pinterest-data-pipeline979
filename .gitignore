@@ -9,3 +9,6 @@ user_id.pem
 
 # Ignores kafka_prod_config.py
 config.py
+
+# Ignores DS Store
+.DS_Store

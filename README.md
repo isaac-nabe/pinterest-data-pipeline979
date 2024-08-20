@@ -431,7 +431,7 @@ This milestone focuses on data cleaning, processing, and querying using Apache S
   
 - **Outcome**: A cleaned Pinterest posts DataFrame with correctly formatted and ordered columns.
 
-  ![Task 1 Result](./task1_result.png)
+  ![Task 1 Result](./README_IMAGES/task1_result.png)
 
 ### Task 2: Clean the Geolocation DataFrame
 
@@ -444,7 +444,7 @@ This milestone focuses on data cleaning, processing, and querying using Apache S
   
 - **Outcome**: A cleaned geolocation DataFrame with combined coordinates and correctly formatted timestamps.
 
-  ![Task 2 Result](./task2_result.png)
+  ![Task 2 Result](./README_IMAGES/task2_result.png)
 
 ### Task 3: Clean the User DataFrame
 
@@ -457,7 +457,7 @@ This milestone focuses on data cleaning, processing, and querying using Apache S
   
 - **Outcome**: A cleaned user DataFrame with full user names and correctly formatted join dates.
 
-  ![Task 3 Result](./task3_result.png)
+  ![Task 3 Result](./README_IMAGES/task3_result.png)
 
 ### *Before querying the DataFrames*
 1. **Consider how you're going to query the data**
@@ -505,7 +505,7 @@ display(<cleaned_dataframe>)
   
 - **Outcome**: A DataFrame showing the most popular category in each country based on post counts.
 
-  ![Task 4 Result](./task4_result.png)
+  ![Task 4 Result](./README_IMAGES/task4_result.png)
 
 ### Task 5: Find the User with the Most Followers in Each Country
 
@@ -518,7 +518,7 @@ display(<cleaned_dataframe>)
   
 - **Outcome**: A DataFrame showing the most followed user in each country and the country with the highest follower count.
 
-  ![Task 5 Result](./task5_result.png)
+  ![Task 5 Result](./README_IMAGES/task5_result.png)
 
 ### Task 6: Find the Most Popular Category for Different Age Groups
 
@@ -531,8 +531,8 @@ display(<cleaned_dataframe>)
   
 - **Outcome**: A DataFrame showing the most popular Pinterest categories across different age groups.
 
-  ![Task 6 Result](./task6_1_result.png)
-  ![Task 6 Result](./task6_2_result.png)
+  ![Task 6 Result](./README_IMAGES/task6_1_result.png)
+  ![Task 6 Result](./README_IMAGES/task6_2_result.png)
 
 ### Task 7: Find the Median Follower Count for Different Age Groups
 
@@ -544,7 +544,7 @@ display(<cleaned_dataframe>)
   
 - **Outcome**: A DataFrame showing the median follower count across different age groups.
 
-  ![Task 7 Result](./task7_result.png)
+  ![Task 7 Result](./README_IMAGES/task7_result.png)
 
 ### Task 8: Find How Many Users Have Joined Each Year
 
@@ -556,7 +556,7 @@ display(<cleaned_dataframe>)
   
 - **Outcome**: A DataFrame showing the number of users who joined each year from 2015 to 2020.
 
-  ![Task 8 Result](./task8_result.png)
+  ![Task 8 Result](./README_IMAGES/task8_result.png)
 
 ### Task 9: Find the Median Follower Count Based on Joining Year
 
@@ -569,7 +569,7 @@ display(<cleaned_dataframe>)
   
 - **Outcome**: A DataFrame showing the median follower count for users based on their joining year.
 
-  ![Task 9 Result](./task9_result.png)
+  ![Task 9 Result](./README_IMAGES/task9_result.png)
 
 ### Task 10: Find the Median Follower Count Based on Joining Year and Age Group
 
@@ -583,7 +583,7 @@ display(<cleaned_dataframe>)
   
 - **Outcome**: A DataFrame showing the median follower count for users based on their joining year and age group.
 
-  ![Task 10 Result](./task10_result.png)
+  ![Task 10 Result](./README_IMAGES/task10_result.png)
 
 ### Task 11: Find the Median Follower Count of Users Based on Their Joining Year and Age Group
 
@@ -597,7 +597,7 @@ display(<cleaned_dataframe>)
   
 - **Outcome**: A DataFrame showing the median follower count for users based on their joining year and age group.
 
-  ![Task 11 Result](./task11_result.png)
+  ![Task 11 Result](./README_IMAGES/task11_result.png)
 
 
 ## Troubleshooting and Solutions
@@ -660,12 +660,27 @@ json_payload = json.dumps({
 pinterest-data-pipeline979/
 ├── user_posting_emulation.py
 ├── mount_s3_bucket.ipynb
+├── M7_Data_Cleaning.ipynb (for DataBricks using spark.sql)
+├── Querying_Notebook.ipynb (for DataBricks using spark.sql)
 ├── .gitignore/
 │   ├── __pycache__/
 │   ├── db_creds.yaml
 │   ├── config.py
 │   └── user_id.pem
 ├── README.md
+├── README_IMAGES/
+│   ├── task1_result.png
+│   ├── task2_result.png
+│   ├── task3_result.png
+│   ├── task4_result.png
+│   ├── task5_result.png
+│   ├── task6_1_result.png
+│   ├── task6_2_result.png
+│   ├── task7_result.png
+│   ├── task8_result.png
+│   ├── task9_result.png
+│   ├── task10_result.png
+│   └── task11_result.png
 └── requirements.txt
 ```
 
