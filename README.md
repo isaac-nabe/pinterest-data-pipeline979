@@ -414,6 +414,192 @@ If you want to unmount the S3 bucket, run the following code:
     - However, as an extra precaution, you could create 2 notebooks in DataBricks, one for credentials, and the other to run the mounting script - using the command `%run <file_path_to_credentials_notebook>` to securely import the credentials without exposing them. If you do this though, the cell that you run this command in cannot contain any comments, as there isa bug that prevents it from reading the file path correctly.
     - As a general rule, pursue implementing as much security as you reasonably can.
 
+## Milestone 7: Batch Processing - Spark on Databricks
+
+This milestone focuses on data cleaning, processing, and querying using Apache Spark on Databricks. The goal is to apply Spark transformations to clean and compute insights from various datasets, with a focus on Pinterest posts, geolocation, and user information.
+
+### Task 1: Clean the Pinterest Posts DataFrame
+
+- **Objective**: Clean the `df_pin` DataFrame containing information about Pinterest posts.
+- **Steps**:
+  1. Replace empty entries and irrelevant data with `None`.
+  2. Ensure the `follower_count` column is properly formatted as an integer.
+  3. Convert numeric columns to appropriate data types.
+  4. Clean the `save_location` column to include only the save location path.
+  5. Rename the `index` column to `ind`.
+  6. Reorder the DataFrame columns according to the specified order.
+  
+- **Outcome**: A cleaned Pinterest posts DataFrame with correctly formatted and ordered columns.
+
+  ![Task 1 Result](./task1_result.png)
+
+### Task 2: Clean the Geolocation DataFrame
+
+- **Objective**: Clean the `df_geo` DataFrame containing geolocation information.
+- **Steps**:
+  1. Create a new column `coordinates` that contains an array based on the `latitude` and `longitude` columns.
+  2. Drop the original `latitude` and `longitude` columns.
+  3. Convert the `timestamp` column from a string to a timestamp data type.
+  4. Reorder the DataFrame columns according to the specified order.
+  
+- **Outcome**: A cleaned geolocation DataFrame with combined coordinates and correctly formatted timestamps.
+
+  ![Task 2 Result](./task2_result.png)
+
+### Task 3: Clean the User DataFrame
+
+- **Objective**: Clean the `df_user` DataFrame containing user information.
+- **Steps**:
+  1. Create a new column `user_name` by concatenating `first_name` and `last_name`.
+  2. Drop the original `first_name` and `last_name` columns.
+  3. Convert the `date_joined` column from a string to a timestamp data type.
+  4. Reorder the DataFrame columns according to the specified order.
+  
+- **Outcome**: A cleaned user DataFrame with full user names and correctly formatted join dates.
+
+  ![Task 3 Result](./task3_result.png)
+
+### *Before querying the DataFrames*
+1. **Consider how you're going to query the data**
+- Personally, I prefer to have seperate notebooks for each task, so in order to share/access the cleaned DataFrames across different notebooks within the same spark session I opted for a fairly simple method of doing this:
+
+2. **Global Temporary Views**:
+- These allow you to easily access and merge data across different notebooks within the same Spark session.
+
+> To create one of these, you can simply use the following syntax:
+```
+# Create global temporary views
+<cleaned_dataframe>.create0rReplaceGlobalTempView("<global_cleaned_dataframe>") # Be sure to replace the df names with your own
+```
+- Make sure to do this for all three of your df's (`pin`, `geo`, `user`).
+
+3. **Once our Global Temporary Views have been made, we can create our notebook for querying the dataframes.**
+- Upon creating our `Querying Notebook`, we'll need to read these Global Temporary Views into our notebook in order to perform any queries.
+
+> To do this, we use the following syntax:
+```
+# Access the global temporary views
+<cleaned_dataframe> = spark.read.table("<global_temp.global_cleaned_dataframe>")
+```
+- Again, make sure to do this for all three of your df's (`pin`, `geo`, `user`).
+
+4. **Display your original Cleaned DataFrames in their own respective cells**
+- This is important to do in order to keep a reference of what the original table looks like, so you can figure out how to best approach what dfs to merge together for the respective tasks.
+```
+display(<cleaned_dataframe>)
+```
+
+**Now we can move on to querying the DataFrames!**
+
+## Querying the Data
+***Please Keep In Mind That: The data is randomly loaded into the S3 bucket, and therefore our results will all look different***
+
+### Task 4: Find the Most Popular Category in Each Country
+
+- **Objective**: Identify the most popular Pinterest category in each country.
+- **Steps**:
+  1. Join `df_pin_cleaned` with `df_geo_cleaned` on the `ind` column.
+  2. Group by `country` and `category`, then count the number of posts in each category per country.
+  3. Rank the categories by count within each country.
+  4. Filter to keep only the most popular category per country.
+  
+- **Outcome**: A DataFrame showing the most popular category in each country based on post counts.
+
+  ![Task 4 Result](./task4_result.png)
+
+### Task 5: Find the User with the Most Followers in Each Country
+
+- **Objective**: Find the user with the most followers in each country and the country with the most followed user.
+- **Steps**:
+  1. Join `df_pin_cleaned`, `df_geo_cleaned`, and `df_user_cleaned` on the `ind` column.
+  2. Group by `country` and `user_name` to find the maximum `follower_count` per user.
+  3. Rank users by follower count within each country and filter to keep the top user.
+  4. Rank countries by the top user's follower count and filter for the top-ranked country.
+  
+- **Outcome**: A DataFrame showing the most followed user in each country and the country with the highest follower count.
+
+  ![Task 5 Result](./task5_result.png)
+
+### Task 6: Find the Most Popular Category for Different Age Groups
+
+- **Objective**: Identify the most popular Pinterest category based on different age groups.
+- **Steps**:
+  1. Join `df_pin_cleaned` with `df_user_cleaned` on the `ind` column.
+  2. Create an `age_group` column based on the `age` column.
+  3. Group by `age_group` and `category`, then count the number of posts in each category per age group.
+  4. Rank the categories by count within each age group and filter to keep the most popular category.
+  
+- **Outcome**: A DataFrame showing the most popular Pinterest categories across different age groups.
+
+  ![Task 6 Result](./task6_1_result.png)
+  ![Task 6 Result](./task6_2_result.png)
+
+### Task 7: Find the Median Follower Count for Different Age Groups
+
+- **Objective**: Calculate the median follower count for users in different age groups.
+- **Steps**:
+  1. Join `df_pin_cleaned` with `df_user_cleaned` on the `ind` column.
+  2. Create an `age_group` column based on the `age` column.
+  3. Group by `age_group` and calculate the median `follower_count`.
+  
+- **Outcome**: A DataFrame showing the median follower count across different age groups.
+
+  ![Task 7 Result](./task7_result.png)
+
+### Task 8: Find How Many Users Have Joined Each Year
+
+- **Objective**: Determine how many users joined each year between 2015 and 2020.
+- **Steps**:
+  1. Extract the year from the `date_joined` column to create a `post_year` column.
+  2. Filter for years between 2015 and 2020.
+  3. Group by `post_year` and count the number of users who joined each year.
+  
+- **Outcome**: A DataFrame showing the number of users who joined each year from 2015 to 2020.
+
+  ![Task 8 Result](./task8_result.png)
+
+### Task 9: Find the Median Follower Count Based on Joining Year
+
+- **Objective**: Calculate the median follower count of users based on their joining year (2015-2020).
+- **Steps**:
+  1. Join `df_pin_cleaned` with `df_user_cleaned` on the `ind` column.
+  2. Extract the year from the `date_joined` column to create a `post_year` column.
+  3. Filter for years between 2015 and 2020.
+  4. Group by `post_year` and calculate the median `follower_count`.
+  
+- **Outcome**: A DataFrame showing the median follower count for users based on their joining year.
+
+  ![Task 9 Result](./task9_result.png)
+
+### Task 10: Find the Median Follower Count Based on Joining Year and Age Group
+
+- **Objective**: Determine the median follower count of users based on their joining year and age group (2015-2020).
+- **Steps**:
+  1. Join `df_pin_cleaned` with `df_user_cleaned` on the `ind` column.
+  2. Extract the year from the `date_joined` column to create a `post_year` column.
+  3. Create an `age_group` column based on the `age` column.
+  4. Filter for years between 2015 and 2020.
+  5. Group by `age_group` and `post_year`, then calculate the median `follower_count`.
+  
+- **Outcome**: A DataFrame showing the median follower count for users based on their joining year and age group.
+
+  ![Task 10 Result](./task10_result.png)
+
+### Task 11: Find the Median Follower Count of Users Based on Their Joining Year and Age Group
+
+- **Objective**: Find the median follower count of users that have joined between 2015 and 2020, based on their age group.
+- **Steps**:
+  1. Join `df_pin_cleaned` with `df_user_cleaned` on the `ind` column.
+  2. Extract the year from the `date_joined` column to create a `post_year` column.
+  3. Create an `age_group` column based on the `age` column.
+  4. Filter for years between 2015 and 2020.
+  5. Group by `age_group` and `post_year`, then calculate the median `follower_count`.
+  
+- **Outcome**: A DataFrame showing the median follower count for users based on their joining year and age group.
+
+  ![Task 11 Result](./task11_result.png)
+
+
 ## Troubleshooting and Solutions
 
 During the development of this project, I encountered several issues that required troubleshooting and adjustments. Below is a summary of the problems I faced and how I resolved them.
