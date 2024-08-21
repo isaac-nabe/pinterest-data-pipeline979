@@ -18,6 +18,7 @@ This project involves setting up an infrastructure that emulates the data proces
   - [Milestone 5: Batch Processing: Configure an API Gateway](#milestone-5-batch-processing-configure-an-api-gateway)
   - [Milestone 6: Mounting S3 Bucket to Databricks and Loading Data](#milestone-6-mounting-s3-bucket-to-databricks-and-loading-data)
   - [Milestone 7: Batch Processing - Spark on Databricks](#milestone-7-batch-processing---spark-on-databricks)
+  - [Milestone 8: Batch Processing - AWS MWAA](#milestone-8-batch-processing---aws-mwaa)
 - [Security](#security)
 - [Contributing](#contributing)
 - [License](#license)
@@ -146,7 +147,7 @@ Created topic <UserID>.geo
 - For this project our AWS account only has permissions to create a connector with the following name: `<your_UserId>-connector`. **Make sure to use this name when creating your connector.**
 
 **Make sure to use the correct configurations for your connector:**
-```
+```python
 connector.class=io.confluent.connect.s3.S3SinkConnector
 # same region as our bucket and cluster
 s3.region=us-east-1
@@ -252,7 +253,7 @@ Modify the `user_posting_emulation.py` file to send data to your Kafka topics us
 >1. Define a method called `send_to_api()`.
 >2. Create a `config.py` file to hold all of the private parts of the code and added the API Invoke URLs into it like so (making sure to add `config.py` to `.gitignore`):
 
-    ```
+    ```python
     BASE_API_INVOKE_URL = '<your_API_Invoke_URL>'
     PIN_API_INVOKE_URL = f'{BASE_API_INVOKE_URL}/topics/<your_ID>.pin'
     GEO_API_INVOKE_URL = f'{BASE_API_INVOKE_URL}/topics/<your_ID>.geo'
@@ -267,7 +268,7 @@ Modify the `user_posting_emulation.py` file to send data to your Kafka topics us
     
 >6. Within the `run_infinite_post_data_loop()` method, call the `send_to_api` method for each topic, making sure to add the 3 constants for each API Invoke URL:
 
-    ```
+    ```python
     # Send data to the corresponding API URLs
         send_to_api(PIN_API_INVOKE_URL, pin_result)
         send_to_api(GEO_API_INVOKE_URL, geo_result)
@@ -340,7 +341,7 @@ In this milestone, the task was to securely mount an S3 bucket to Databricks and
 
 ### Example Code for DataBricks Notebook
 
-    ```
+    ```python
     # Step 1: Load AWS credentials from Delta table
     delta_table_path = "dbfs:/<path_to_authentication_credentials>"
     aws_keys_df = spark.read.format("delta").load(delta_table_path)
@@ -603,11 +604,94 @@ display(<cleaned_dataframe>)
   ![Task 11 Result](./README_IMAGES/task11_result.png)
 
 
+## Milestone 8: Batch Processing: AWS MWAA
+
+In this milestone, we orchestrated Databricks workloads using Amazon Managed Workflows for Apache Airflow (MWAA). The objective was to automate the data cleaning process and other related tasks by scheduling them using Airflow DAGs.
+
+### Task 1: Create and Upload a DAG to a MWAA Environment
+
+- **Objective**: Set up an Airflow DAG to automate the execution of the data cleaning notebook in Databricks.
+
+- **Steps**:
+  1. Use the provided DAG template to create the Airflow DAG file:
+  
+      ```python
+      from airflow import DAG
+      from airflow.providers.databricks.operators.databricks import DatabricksSubmitRunOperator, DatabricksRunNowOperator
+      from datetime import datetime, timedelta 
+
+      # Define params for Submit Run Operator
+      notebook_task = {
+          'notebook_path': '<DATABRICKS_NOTEBOOK_PATH>',
+      }
+
+      # Define params for Run Now Operator
+      notebook_params = {
+          "Variable": 5
+      }
+
+      default_args = {
+          'owner': '<OWNER_NAME>',
+          'depends_on_past': False,
+          'email_on_failure': False,
+          'email_on_retry': False,
+          'retries': <NUMBER_DESIRED_RETRIES>,
+          'retry_delay': timedelta(minutes=2)
+      }
+
+      with DAG('databricks_dag',
+          start_date=<DESIRED_START_DATE>,
+          schedule_interval='<DESIRED_INTERVAL>',
+          catchup=False,
+          default_args=default_args
+          ) as dag:
+
+          opr_submit_run = DatabricksSubmitRunOperator(
+              task_id='submit_run',
+              databricks_conn_id='databricks_default',
+              existing_cluster_id='<CLUSTER_ID>',
+              notebook_task=notebook_task
+          )
+          opr_submit_run
+      ```
+
+  2. Fill in the placeholders:
+     - `<DATABRICKS_NOTEBOOK_PATH>`: Full path to your Databricks notebook.
+     - `<OWNER_NAME>`: Your name or identifier.
+     - `<NUMBER_DESIRED_RETRIES>`: Number of retries in case of failure. 3-5 is fine.
+     - `<DESIRED_START_DATE>`: Start date of the DAG in `datetime` format.
+     - `<DESIRED_INTERVAL>`: Schedule interval (e.g., daily).
+     - `<CLUSTER_ID>`: The ID of the Databricks cluster. Can be found under `Compute`>`Your_Cluster`>`More`>`View JSON`>`Cluster ID`.
+
+  3. Upload the DAG file to the `dags` folder in the `mwaa-dags-bucket` S3 bucket.
+  
+
+- **Outcome**: Successfully created and deployed a DAG in MWAA that automates the execution of the Databricks data cleaning notebook.
+
+
+### Task 2: Trigger a DAG that Runs a Databricks Notebook
+
+- **Objective**: Manually trigger the DAG you created and check its execution status.
+
+- **Steps**:
+  1. Access the Airflow UI.
+  2. Locate the DAG you uploaded in Task 1.
+  3. Manually trigger the DAG to execute the Databricks notebook.
+  4. Monitor the execution and ensure the DAG completes successfully.
+  5. If the DAG fails, check the logs within Airflow to identify the error. In my case, the error was due to a missing import of a function in the notebook. Amend the error and retest until successful.
+
+  - You can check to see the success from various dashboard views within Airflow - the quickest being from the `DAGs` tab. However, to see the Tree of triggered instances, their successes and failures, you can click on the name of your DAG and make sure you're on the `Tree` tab (pictured below).
+
+- **Outcome**: The DAG was triggered successfully, and any encountered issues were resolved by checking the logs and adjusting the notebook accordingly.
+
+  ![Task 2 Result](./README_IMAGES/m8_task2_result.png)
+
+
 ## Troubleshooting and Solutions
 
 During the development of this project, I encountered several issues that required troubleshooting and adjustments. Below is a summary of the problems I faced and how I resolved them.
 
-### Issues  Encountered:
+# Issues Encountered:
 
 #### Milestone 5:
 
@@ -665,6 +749,7 @@ pinterest-data-pipeline979/
 ├── mount_s3_bucket.ipynb
 ├── M7_Data_Cleaning.ipynb (for DataBricks using spark.sql)
 ├── Querying_Notebook.ipynb (for DataBricks using spark.sql)
+├── user_ID_dag.py (To Upload to Airflow configured s3 bucket)
 ├── .gitignore/
 │   ├── __pycache__/
 │   ├── db_creds.yaml
@@ -672,6 +757,7 @@ pinterest-data-pipeline979/
 │   └── user_id.pem
 ├── README.md
 ├── README_IMAGES/
+│   ├── m8_task2_result.png
 │   ├── task1_result.png
 │   ├── task2_result.png
 │   ├── task3_result.png
@@ -693,6 +779,7 @@ Ensure that the below files are not uploaded to your repository by adding them t
 >- `db_creds.yaml`
 >- `config.py`
 >- `user_id.pem`
+>- `DS_Store`
 
 ## License
 
