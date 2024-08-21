@@ -508,7 +508,23 @@ display(<cleaned_dataframe>)
 
   ![Task 4 Result](./README_IMAGES/task4_result.png)
 
-### Task 5: Find the User with the Most Followers in Each Country
+### Task 5: Find the Most Popular Category in Each Year (2018 - 2022)
+
+- **Objective**: Identify the most popular Pinterest category in each year between 2018 and 2022.
+- **Steps**:
+  1. Join df_pin_cleaned with df_geo_cleaned on the ind column.
+  2. Extract the year from the timestamp column to create a post_year column.
+  3. Filter the data to include only posts between 2018 and 2022.
+  4. Group by post_year and category, then count the number of posts in each category per year.
+  5. Define a window specification to rank categories by count within each year.
+  6. Apply the window function to add a rank column.
+  7. Filter to keep only the most popular category per year (rank == 1).
+
+- **Outcome**: A DataFrame showing the most popular category in each year based on post counts.
+
+  ![Task 5 Result](./README_IMAGES/task5_result.png)
+
+### Task 6: Find the User with the Most Followers in Each Country
 
 - **Objective**: Find the user with the most followers in each country and the country with the most followed user.
 - **Steps**:
@@ -519,9 +535,10 @@ display(<cleaned_dataframe>)
   
 - **Outcome**: A DataFrame showing the most followed user in each country and the country with the highest follower count.
 
-  ![Task 5 Result](./README_IMAGES/task5_result.png)
+  ![Task 6 Result](./README_IMAGES/task6_1_result.png)
+  ![Task 6 Result](./README_IMAGES/task6_2_result.png)
 
-### Task 6: Find the Most Popular Category for Different Age Groups
+### Task 7: Find the Most Popular Category for Different Age Groups
 
 - **Objective**: Identify the most popular Pinterest category based on different age groups.
 - **Steps**:
@@ -532,10 +549,9 @@ display(<cleaned_dataframe>)
   
 - **Outcome**: A DataFrame showing the most popular Pinterest categories across different age groups.
 
-  ![Task 6 Result](./README_IMAGES/task6_1_result.png)
-  ![Task 6 Result](./README_IMAGES/task6_2_result.png)
+  ![Task 7 Result](./README_IMAGES/task7_result.png)
 
-### Task 7: Find the Median Follower Count for Different Age Groups
+### Task 8: Find the Median Follower Count for Different Age Groups
 
 - **Objective**: Calculate the median follower count for users in different age groups.
 - **Steps**:
@@ -545,9 +561,9 @@ display(<cleaned_dataframe>)
   
 - **Outcome**: A DataFrame showing the median follower count across different age groups.
 
-  ![Task 7 Result](./README_IMAGES/task7_result.png)
+  ![Task 8 Result](./README_IMAGES/task8_result.png)
 
-### Task 8: Find How Many Users Have Joined Each Year
+### Task 9: Find How Many Users Have Joined Each Year
 
 - **Objective**: Determine how many users joined each year between 2015 and 2020.
 - **Steps**:
@@ -557,9 +573,9 @@ display(<cleaned_dataframe>)
   
 - **Outcome**: A DataFrame showing the number of users who joined each year from 2015 to 2020.
 
-  ![Task 8 Result](./README_IMAGES/task8_result.png)
+  ![Task 9 Result](./README_IMAGES/task9_result.png)
 
-### Task 9: Find the Median Follower Count Based on Joining Year
+### Task 10: Find the Median Follower Count Based on Joining Year
 
 - **Objective**: Calculate the median follower count of users based on their joining year (2015-2020).
 - **Steps**:
@@ -570,25 +586,11 @@ display(<cleaned_dataframe>)
   
 - **Outcome**: A DataFrame showing the median follower count for users based on their joining year.
 
-  ![Task 9 Result](./README_IMAGES/task9_result.png)
-
-### Task 10: Find the Median Follower Count Based on Joining Year and Age Group
-
-- **Objective**: Determine the median follower count of users based on their joining year and age group (2015-2020).
-- **Steps**:
-  1. Join `df_pin_cleaned` with `df_user_cleaned` on the `ind` column.
-  2. Extract the year from the `date_joined` column to create a `post_year` column.
-  3. Create an `age_group` column based on the `age` column.
-  4. Filter for years between 2015 and 2020.
-  5. Group by `age_group` and `post_year`, then calculate the median `follower_count`.
-  
-- **Outcome**: A DataFrame showing the median follower count for users based on their joining year and age group.
-
   ![Task 10 Result](./README_IMAGES/task10_result.png)
 
-### Task 11: Find the Median Follower Count of Users Based on Their Joining Year and Age Group
+### Task 11: Find the Median Follower Count Based on Joining Year and Age Group
 
-- **Objective**: Find the median follower count of users that have joined between 2015 and 2020, based on their age group.
+- **Objective**: Determine the median follower count of users based on their joining year and age group (2015-2020).
 - **Steps**:
   1. Join `df_pin_cleaned` with `df_user_cleaned` on the `ind` column.
   2. Extract the year from the `date_joined` column to create a `post_year` column.
