@@ -18,7 +18,7 @@ This project involves setting up an infrastructure that emulates the data proces
   - [Milestone 5: Batch Processing: Configure an API Gateway](#milestone-5-batch-processing-configure-an-api-gateway)
   - [Milestone 6: Mounting S3 Bucket to Databricks and Loading Data](#milestone-6-mounting-s3-bucket-to-databricks-and-loading-data)
   - [Milestone 7: Batch Processing - Spark on Databricks](#milestone-7-batch-processing---spark-on-databricks)
-  - [Milestone 8: Batch Processing - AWS MWAA](#milestone-8-batch-processing---aws-mwaa)
+  - [Milestone 8: Batch Processing: AWS MWAA](#milestone-8-batch-processing-aws-mwaa)
 - [Security](#security)
 - [Contributing](#contributing)
 - [License](#license)
