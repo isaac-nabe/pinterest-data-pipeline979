@@ -17,6 +17,7 @@ This project involves setting up an infrastructure that emulates the data proces
   - [Milestone 4: Connect an MSK Cluster to an S3 Bucket](#milestone-4-connect-an-msk-cluster-to-an-s3-bucket)
   - [Milestone 5: Batch Processing: Configure an API Gateway](#milestone-5-batch-processing-configure-an-api-gateway)
   - [Milestone 6: Mounting S3 Bucket to Databricks and Loading Data](#milestone-6-mounting-s3-bucket-to-databricks-and-loading-data)
+  - [Milestone 7: Batch Processing - Spark on Databricks](#milestone-7-batch-processing---spark-on-databricks)
 - [Security](#security)
 - [Contributing](#contributing)
 - [License](#license)
