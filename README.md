@@ -2,11 +2,11 @@
 
 Pinterest crunches billions of data points every day to decide how to provide more value to their users. In this project, you'll create a similar system using the AWS Cloud.
 
-## Project Overview
+# Project Overview
 
 This project involves setting up an infrastructure that emulates the data processing pipeline of Pinterest. You will work with simulated data representing user posts, geolocation information, and user details. The project is divided into milestones, with specific tasks to guide you through the setup.
 
-## Table of Contents
+# Table of Contents
 
 - [Getting Started](#getting-started)
 - [Data Description](#data-description)
@@ -19,11 +19,13 @@ This project involves setting up an infrastructure that emulates the data proces
   - [Milestone 6: Mounting S3 Bucket to Databricks and Loading Data](#milestone-6-mounting-s3-bucket-to-databricks-and-loading-data)
   - [Milestone 7: Batch Processing - Spark on Databricks](#milestone-7-batch-processing---spark-on-databricks)
   - [Milestone 8: Batch Processing: AWS MWAA](#milestone-8-batch-processing-aws-mwaa)
-- [Security](#security)
-- [Contributing](#contributing)
+  - [Milestone 9: Stream Processing with AWS Kinesis](#milestone-9-stream-processing-with-aws-kinesis)
+- [Troubleshooting & Considerations](#troubleshooting-&-considerations)
+- [File Structure](#file-structure)
+- [Security](#security-considerations)
 - [License](#license)
 
-## Getting Started
+# Getting Started
 
 To get started with this project, follow the steps below:
 
@@ -32,7 +34,7 @@ To get started with this project, follow the steps below:
    ```bash
    pip install -r requirements.txt
     ```
-## Data Description
+# Data Description
 
 The project includes three main data tables:
 ```
@@ -41,19 +43,20 @@ The project includes three main data tables:
 • user_data: Contains data about the users who uploaded each post.
 ```
 
-## Milestones
+# Milestones
 
-### Milestone 1: Setting Up the Environment
+## Milestone 1: Setting Up the Environment
 **Run the Script:** Execute `user_posting_emulation.py` to simulate user posts and print out `pin_result`, `geo_result`, and `user_result`. These outputs represent one entry in their corresponding tables.
 
 **Database Credentials:** Create a separate `db_creds.yaml` file for the database credentials (`HOST`, `USER`, `PASSWORD` values). Ensure this file is included in your `.gitignore` to avoid uploading sensitive details to GitHub.
 
-### Milestone 2: AWS Integration
+## Milestone 2: AWS Integration
 **Sign into AWS to start building the pipeline by following these steps:**
 
 **Access Provided RDS:** Use the credentials provided to access the existing RDS instance which contains the necessary tables.
 
-### Milestone 3: Configuring the EC2 Kafka Client
+## Milestone 3: Configuring the EC2 Kafka Client
+
 **Task 1:** Create a .pem Key Locally
 
 1. Create Key Pair File:
@@ -68,8 +71,12 @@ The project includes three main data tables:
 >- Select this instance, and under the Details section, find the Key pair name and note it.
 >- Save the previously created file in VSCode using the format: `user_id.pem`.
 
+---
+
 **Task 2:** Connect to the EC2 Instance
 >- Follow the Connect instructions (SSH client) on the EC2 console to connect to your EC2 instance.
+
+---
 
 **Task 3:** Set Up Kafka on the EC2 Instance
 1. Install Kafka:
@@ -86,6 +93,8 @@ The project includes three main data tables:
 
 4. Configure Kafka Client:
 >- Modify the client.properties file inside your kafka_folder/bin directory for AWS IAM authentication.
+
+---
 
 **Task 4:** Create the Kafka Topics
 1. Retrieve Cluster Information:
@@ -111,7 +120,7 @@ Created topic <UserID>.geo
 
 >- Ensure your CLASSPATH environment variable is set properly and you have installed the aws-msk-iam-auth-1.1.5-all.jar package in the kafka_folder/libs.
 
-### Milestone 4: Connect an MSK Cluster to an S3 Bucket
+## Milestone 4: Connect an MSK Cluster to an S3 Bucket
 **Task 1:** Create a custom plugin with MSK connect
 
 - **Step 1:** Go to the S3 console and find the bucket that contains your UserId. The bucket name should have the following format: `user-<your_UserId>-bucket`. Make a note of the bucket name, as you will need it in the next steps.
@@ -141,6 +150,7 @@ Created topic <UserID>.geo
     ```
     s3://<user_bucket>>/confluentinc-kafka-connect-s3-10.5.13.zip
     ```
+---
 
 **Task 2:** Create a connector with MSK connect
 
@@ -173,7 +183,7 @@ s3.bucket.name=`<BUCKET_NAME>`
 - Now that you have built the plugin-connector pair, data passing through the IAM authenticated cluster, will be automatically stored in the designated S3 bucket.
 
 
-### Milestone 5: Batch Processing: Configure an API Gateway
+## Milestone 5: Batch Processing: Configure an API Gateway
 
 **Task 1**: Build a Kafka REST proxy integration for your API.
 
@@ -187,6 +197,8 @@ For this project, you will not need to create your own API, as you have been pro
 
 - **Step 3**:  
    Deploy the API and make a note of the Invoke URL, as you will need it in a later task.
+
+---
 
 **Task 2**: Set up the Kafka REST Proxy on the EC2 Client
 
@@ -241,6 +253,8 @@ Now that you have set up the Kafka REST Proxy integration for your API, you need
     ```
     ./kafka-rest-start /home/ec2-user/confluent-7.2.0/etc/kafka-rest/kafka-rest.properties
     ```
+
+---
 
 **Task 3**: Send Data to the API
 
@@ -338,65 +352,69 @@ In this milestone, the task was to securely mount an S3 bucket to Databricks and
      - `df_pin`: Contains Pinterest post data.
      - `df_geo`: Contains geolocation data.
      - `df_user`: Contains user data.
+---
 
 ### Example Code for DataBricks Notebook
 
     ```python
-    # Step 1: Load AWS credentials from Delta table
-    delta_table_path = "dbfs:/<path_to_authentication_credentials>"
-    aws_keys_df = spark.read.format("delta").load(delta_table_path)
-
-    # Step 2: Extract and encode credentials
-    ACCESS_KEY = aws_keys_df.select('Access key ID').collect()[0]['Access key ID']
-    SECRET_KEY = aws_keys_df.select('Secret access key').collect()[0]['Secret access key']
-    ENCODED_SECRET_KEY = urllib.parse.quote(string=SECRET_KEY, safe="")
-
-    # Step 3: Define the S3 bucket name and mount point
-    AWS_S3_BUCKET = "<your_user_bucket>"
-    MOUNT_NAME = "/mnt/<your_mount_name>"
-    SOURCE_URL = f"s3n://{ACCESS_KEY}:{ENCODED_SECRET_KEY}@{AWS_S3_BUCKET}"
-
-    # Step 4: Mount the S3 bucket
-    dbutils.fs.mount(SOURCE_URL, MOUNT_NAME)
-
-    # Step 5: Define paths to the JSON files in the S3 bucket
-    path_pin = f"{MOUNT_NAME}/topics/<your_UserId>.pin/partition=0/"
-    path_geo = f"{MOUNT_NAME}/topics/<your_UserId>.geo/partition=0/"
-    path_user = f"{MOUNT_NAME}/topics/<your_UserId>.user/partition=0/"
-
-    # Step 6: Disable format checks during the reading of Delta tables
-    %sql
-    SET spark.databricks.delta.formatCheck.enabled=false
-
-    # Step 7: Load the JSON data into DataFrames with schema inference
-    try:
-        df_pin = spark.read.format("json") \
-            .option("inferSchema", "true") \
-            .load(path_pin)
-        
-        df_geo = spark.read.format("json") \
-            .option("inferSchema", "true") \
-            .load(path_geo)
-        
-        df_user = spark.read.format("json") \
-            .option("inferSchema", "true") \
-            .load(path_user)
-
-        # Display loaded data to verify successful loading
-        print("Pinterest Data:")
-        display(df_pin)
-
-        print("Geolocation Data:")
-        display(df_geo)
-
-        print("User Data:")
-        display(df_user)
-
-    except Exception as e:
-    print(f"Error loading data from S3: {str(e)}")
+        # Step 1: Load AWS credentials from Delta table
+        delta_table_path = "dbfs:/<path_to_authentication_credentials>"
+        aws_keys_df = spark.read.format("delta").load(delta_table_path)
+    
+        # Step 2: Extract and encode credentials
+        ACCESS_KEY = aws_keys_df.select('Access key ID').collect()[0]['Access key ID']
+        SECRET_KEY = aws_keys_df.select('Secret access key').collect()[0]['Secret access key']
+        ENCODED_SECRET_KEY = urllib.parse.quote(string=SECRET_KEY, safe="")
+    
+        # Step 3: Define the S3 bucket name and mount point
+        AWS_S3_BUCKET = "<your_user_bucket>"
+        MOUNT_NAME = "/mnt/<your_mount_name>"
+        SOURCE_URL = f"s3n://{ACCESS_KEY}:{ENCODED_SECRET_KEY}@{AWS_S3_BUCKET}"
+    
+        # Step 4: Mount the S3 bucket
+        dbutils.fs.mount(SOURCE_URL, MOUNT_NAME)
+    
+        # Step 5: Define paths to the JSON files in the S3 bucket
+        path_pin = f"{MOUNT_NAME}/topics/<your_UserId>.pin/partition=0/"
+        path_geo = f"{MOUNT_NAME}/topics/<your_UserId>.geo/partition=0/"
+        path_user = f"{MOUNT_NAME}/topics/<your_UserId>.user/partition=0/"
+    
+        # Step 6: Disable format checks during the reading of Delta tables
+        %sql
+        SET spark.databricks.delta.formatCheck.enabled=false
+    
+        # Step 7: Load the JSON data into DataFrames with schema inference
+        try:
+            df_pin = spark.read.format("json") \
+                .option("inferSchema", "true") \
+                .load(path_pin)
+            
+            df_geo = spark.read.format("json") \
+                .option("inferSchema", "true") \
+                .load(path_geo)
+            
+            df_user = spark.read.format("json") \
+                .option("inferSchema", "true") \
+                .load(path_user)
+    
+            # Display loaded data to verify successful loading
+            print("Pinterest Data:")
+            display(df_pin)
+    
+            print("Geolocation Data:")
+            display(df_geo)
+    
+            print("User Data:")
+            display(df_user)
+    
+        except Exception as e:
+        print(f"Error loading data from S3: {str(e)}")
     ```
+
 ### Output
 Upon successful execution, the script prints out sample data from each DataFrame to verify that the JSON files have been loaded correctly.
+
+---
 
 ### Notes
 - Make sure to replace placeholders like `your_user_bucket`, `your_mount_name`, and `your_UserId` with actual values corresponding to your S3 bucket, mount point, and user ID.
@@ -411,7 +429,7 @@ If you want to unmount the S3 bucket, run the following code:
     dbutils.fs.unmount("/mnt/mount_name")
     ```
 - **Security**: 
-    - ***DO NOT UNDER ANY CIRCUMSTANCE UPLOAD YOUR RAW CREDENTIALS ANYWHERE, ESPECIALLY TOGETHER WITH YOUR CODE ON GITHUB. EXPOSED        CREDENTIALS ARE JUST ABOUT THE WORST THING A PROGRAMMER CAN DO.***
+    - ***DO NOT UNDER ANY CIRCUMSTANCE UPLOAD YOUR RAW CREDENTIALS ANYWHERE, ESPECIALLY TOGETHER WITH YOUR CODE ON GITHUB. EXPOSED CREDENTIALS ARE JUST ABOUT THE WORST THING A PROGRAMMER CAN DO.***
     - Databricks is generally quite secure and you would need access to the workspace in order to access the credentials.
     - However, as an extra precaution, you could create 2 notebooks in DataBricks, one for credentials, and the other to run the mounting script - using the command `%run <file_path_to_credentials_notebook>` to securely import the credentials without exposing them. If you do this though, the cell that you run this command in cannot contain any comments, as there isa bug that prevents it from reading the file path correctly.
     - As a general rule, pursue implementing as much security as you reasonably can.
@@ -435,6 +453,8 @@ This milestone focuses on data cleaning, processing, and querying using Apache S
 
   ![Task 1 Result](./README_IMAGES/task1_result.png)
 
+---
+
 ### Task 2: Clean the Geolocation DataFrame
 
 - **Objective**: Clean the `df_geo` DataFrame containing geolocation information.
@@ -447,6 +467,8 @@ This milestone focuses on data cleaning, processing, and querying using Apache S
 - **Outcome**: A cleaned geolocation DataFrame with combined coordinates and correctly formatted timestamps.
 
   ![Task 2 Result](./README_IMAGES/task2_result.png)
+
+---
 
 ### Task 3: Clean the User DataFrame
 
@@ -493,6 +515,8 @@ display(<cleaned_dataframe>)
 
 **Now we can move on to querying the DataFrames!**
 
+
+
 ## Querying the Data
 ***Please Keep In Mind That: The data is randomly loaded into the S3 bucket, and therefore our results will all look different***
 
@@ -508,6 +532,8 @@ display(<cleaned_dataframe>)
 - **Outcome**: A DataFrame showing the most popular category in each country based on post counts.
 
   ![Task 4 Result](./README_IMAGES/task4_result.png)
+
+---
 
 ### Task 5: Find the Most Popular Category in Each Year (2018 - 2022)
 
@@ -525,6 +551,8 @@ display(<cleaned_dataframe>)
 
   ![Task 5 Result](./README_IMAGES/task5_result.png)
 
+---
+
 ### Task 6: Find the User with the Most Followers in Each Country
 
 - **Objective**: Find the user with the most followers in each country and the country with the most followed user.
@@ -539,6 +567,8 @@ display(<cleaned_dataframe>)
   ![Task 6 Result](./README_IMAGES/task6_1_result.png)
   ![Task 6 Result](./README_IMAGES/task6_2_result.png)
 
+---
+
 ### Task 7: Find the Most Popular Category for Different Age Groups
 
 - **Objective**: Identify the most popular Pinterest category based on different age groups.
@@ -552,6 +582,8 @@ display(<cleaned_dataframe>)
 
   ![Task 7 Result](./README_IMAGES/task7_result.png)
 
+---
+
 ### Task 8: Find the Median Follower Count for Different Age Groups
 
 - **Objective**: Calculate the median follower count for users in different age groups.
@@ -563,6 +595,8 @@ display(<cleaned_dataframe>)
 - **Outcome**: A DataFrame showing the median follower count across different age groups.
 
   ![Task 8 Result](./README_IMAGES/task8_result.png)
+
+---
 
 ### Task 9: Find How Many Users Have Joined Each Year
 
@@ -576,6 +610,8 @@ display(<cleaned_dataframe>)
 
   ![Task 9 Result](./README_IMAGES/task9_result.png)
 
+---
+
 ### Task 10: Find the Median Follower Count Based on Joining Year
 
 - **Objective**: Calculate the median follower count of users based on their joining year (2015-2020).
@@ -588,6 +624,8 @@ display(<cleaned_dataframe>)
 - **Outcome**: A DataFrame showing the median follower count for users based on their joining year.
 
   ![Task 10 Result](./README_IMAGES/task10_result.png)
+
+---
 
 ### Task 11: Find the Median Follower Count Based on Joining Year and Age Group
 
@@ -668,6 +706,7 @@ In this milestone, we orchestrated Databricks workloads using Amazon Managed Wor
 
 - **Outcome**: Successfully created and deployed a DAG in MWAA that automates the execution of the Databricks data cleaning notebook.
 
+---
 
 ### Task 2: Trigger a DAG that Runs a Databricks Notebook
 
@@ -687,27 +726,300 @@ In this milestone, we orchestrated Databricks workloads using Amazon Managed Wor
   ![Task 2 Result](./README_IMAGES/m8_task2_result.png)
 
 
-## Troubleshooting and Solutions
+## Milestone 9: Stream Processing with AWS Kinesis
+
+This README will guide you through setting up and configuring your AWS Kinesis streams, API Gateway, and Python scripts to send data to the Kinesis streams and perform CRUD operations.
+
+
+
+### Task 1: Create Data Streams Using Kinesis Data Streams
+
+1. **Stream Naming Convention**:
+   Ensure that your AWS account has been granted permissions to create and describe the following streams:
+   - `streaming-<your_UserId>-pin`
+   - `streaming-<your_UserId>-geo`
+   - `streaming-<your_UserId>-user`
+
+   **Note**: Follow the correct naming convention to avoid permission errors.
+
+2. **Creating Streams**:
+   - Navigate to the AWS Kinesis service in the AWS Management Console.
+   - Create three data streams using the provided naming conventions.
+
+---
+
+### Task 2: Configure an API with Kinesis Proxy Integration
+
+1. **Create API and Set Up Resources**:
+   - Navigate to the API Gateway service.
+   - Create a new REST API or use an existing one.
+
+2. **Integration with AWS Kinesis**:
+   - Under your API’s resources, create a new resource named `/streams`.
+   - For the `/streams` resource, create the following HTTP methods:
+     - **POST**: List streams in Kinesis.
+     - **GET**: Get details of a specific stream.
+     - **DELETE**: Delete a specific stream.
+
+3. **Setting up HTTP Methods**:
+
+   - **List Streams (POST)**:
+     - Resource: `/streams`
+     - Integration type: AWS Service
+     - AWS Region: `us-east-1`
+     - AWS Service: `Kinesis`
+     - HTTP method: `POST`
+     - Action: `ListStreams`
+     - Execution Role: `<your_UserId>-kinesis-access-role`
+     - Integration request: Add `Content-Type` header as `application/x-amz-json-1.1` (see [Content-Type Explanation](#content-type-applicationxamzjson-in-aws-requests))
+     - Mapping Template: `{}`
+
+   - **Describe Stream (GET)**:
+     - Resource: `/streams/{stream-name}`
+     - Integration type: AWS Service
+     - AWS Region: `us-east-1`
+     - AWS Service: `Kinesis`
+     - HTTP method: `POST`
+     - Action: `DescribeStream`
+     - Execution Role: `<your_UserId>-kinesis-access-role`
+     - Integration request: Add `Content-Type` header as `application/x-amz-json-1.1` (see [Content-Type Explanation](#content-type-applicationxamzjson-in-aws-requests))
+     - Mapping Template:
+       ```json
+       {
+           "StreamName": "$input.params('stream-name')"
+       }
+       ```
+
+   - **Create Stream (POST)**:
+     - Resource: `/streams/{stream-name}`
+     - Integration type: AWS Service
+     - AWS Region: `us-east-1`
+     - AWS Service: `Kinesis`
+     - HTTP method: `POST`
+     - Action: `CreateStream`
+     - Execution Role: `<your_UserId>-kinesis-access-role`
+     - Integration request: Add `Content-Type` header as `application/x-amz-json-1.1` (see [Content-Type Explanation](#content-type-applicationxamzjson-in-aws-requests))
+     - Mapping Template:
+       ```json
+       {
+           "ShardCount": "#if($input.path('$.ShardCount') == '') 5 #else $input.path('$.ShardCount') #end",
+           "StreamName": "$input.params('stream-name')"
+       }
+       ```
+
+   - **Delete Stream (DELETE)**:
+     - Resource: `/streams/{stream-name}`
+     - Integration type: AWS Service
+     - AWS Region: `us-east-1`
+     - AWS Service: `Kinesis`
+     - HTTP method: `POST`
+     - Action: `DeleteStream`
+     - Execution Role: `<your_UserId>-kinesis-access-role`
+     - Integration request: Add `Content-Type` header as `application/x-amz-json-1.1` (see [Content-Type Explanation](#content-type-applicationxamzjson-in-aws-requests))
+     - Mapping Template:
+       ```json
+       {
+           "StreamName": "$input.params('stream-name')"
+       }
+       ```
+
+   - **Add Records to Stream (PUT)**:
+     - Resource: `/streams/{stream-name}/record`
+     - Integration type: AWS Service
+     - AWS Region: `us-east-1`
+     - AWS Service: `Kinesis`
+     - HTTP method: `PUT`
+     - Action: `PutRecord`
+     - Execution Role: `<your_UserId>-kinesis-access-role`
+     - Integration request: Add `Content-Type` header as `application/x-amz-json-1.1` (see [Content-Type Explanation](#content-type-applicationxamzjson-in-aws-requests))
+     - Mapping Template:
+       ```json
+       {
+           "StreamName": "$input.params('stream-name')",
+           "Data": "$util.base64Encode($input.json('$.Data'))",
+           "PartitionKey": "$input.path('$.PartitionKey')"
+       }
+       ```
+
+   - **Add Multiple Records to Stream (PUT)**:
+     - Resource: `/streams/{stream-name}/records`
+     - Integration type: AWS Service
+     - AWS Region: `us-east-1`
+     - AWS Service: `Kinesis`
+     - HTTP method: `PUT`
+     - Action: `PutRecords`
+     - Execution Role: `<your_UserId>-kinesis-access-role`
+     - Integration request: Add `Content-Type` header as `application/x-amz-json-1.1` (see [Content-Type Explanation](#content-type-applicationxamzjson-in-aws-requests))
+     - Mapping Template:
+       ```json
+       {
+           "StreamName": "$input.params('stream-name')",
+           "Records": [
+               #foreach($elem in $input.path('$.records'))
+               {
+                   "Data": "$util.base64Encode($elem.data)",
+                   "PartitionKey": "$elem.partition-key"
+               }#if($foreach.hasNext),#end
+               #end
+           ]
+       }
+       ```
+
+---
+
+### Task 3: Sending Data to Kinesis Streams
+
+1. **Edit the `user_posting_emulation_streaming.py` script**:
+   1. Create a duplicate of the `user_posting_emulation.py` script.
+   2. Create a new function called `send_to_kinesis()` that looks like this:
+      ```python
+        def send_to_kinesis(url: str, stream_name: str, data: dict):
+        """
+        Sends data to the Kinesis stream via the API Gateway.
+
+        :param url: The full API URL for the specific stream.
+        :param stream_name: The name of the Kinesis stream.
+        :param data: The data to be sent as a dictionary.
+        """
+        # Serialize the payload to JSON format, including the stream name and partition key
+        json_payload = json.dumps({
+            "StreamName": stream_name,
+            "Data": json.dumps(data),
+            "PartitionKey": "partition-key"  # Replace with a suitable partition key if needed
+        })
+
+        # Set the necessary headers for the request
+        headers = {'Content-Type': 'application/json'}
+
+        # Send the JSON payload to the API using the PUT method
+        response = requests.request("PUT", url, headers=headers, data=json_payload)
+
+        # Check the response status and print appropriate messages
+        if response.status_code == 200:
+            print(f"Response Status Code: {response.status_code}. Successfully sent data to {url}.")
+        else:
+            print(response.status_code)
+            print(f"Failed to send data to {url}. Response: {response.text}")
+      ```
+   3. Then to the end of your `run_infinite_post_data_loop()` function, add the below:
+      ```python
+            # Make sure timestamp formats are converted to a string so they are JSON serializable, otherwise you'll get an error.
+            geo_result['timestamp'] = geo_result['timestamp'].isoformat()
+            user_result['date_joined'] = user_result['date_joined'].isoformat()
+
+            # Send data to the corresponding Kinesis streams via the API Gateway
+            send_to_kinesis(PIN_API_INVOKE_URL, PIN_STREAM, pin_result)
+            send_to_kinesis(GEO_API_INVOKE_URL, GEO_STREAM, geo_result)
+            send_to_kinesis(USER_API_INVOKE_URL, USER_STREAM, user_result)
+
+            print("Data sent to Kinesis streams via API Gateway")
+      ```
+   4. Finally, edit your `config.py` file to reflect the new task of interacting with Kinesis - it should look something like this:
+      ```python
+        """
+        This config file contains the necessary URLs and stream names for interacting with AWS Kinesis streams.
+        """
+
+        # API Invoke URLs for each stream (replace with your own stream-specific URLs)
+        PIN_API_INVOKE_URL = 'https://your-api-invoke-url.amazonaws.com/YourStage/streams/streaming-<your_user_ID>-pin/record'
+        GEO_API_INVOKE_URL = 'https://your-api-invoke-url.amazonaws.com/YourStage/streams/streaming-<your_user_ID>-geo/record'
+        USER_API_INVOKE_URL = 'https://your-api-invoke-url.amazonaws.com/YourStage/streams/streaming-<your_user_ID>-user/record'
+
+        # Stream names (replace with your own stream names)
+        PIN_STREAM = 'streaming-<your_user_ID>-pin'
+        GEO_STREAM = 'streaming-<your_user_ID>-geo'
+        USER_STREAM = 'streaming-<your_user_ID>-user'
+      ```
+    >- ***It's worth noting that your `config.py` will also likely contain details for your kafka topics.***
+    >- ***you can safely comment these out using either `#` or `multiline comments: """<your-text-here>"""`***
+
+   **Make sure to**:
+    - Set the HTTP method in your script is to `requests.request("PUT")` to match the API Gateway configuration.
+    - Use the correct API Invoke URL in your script.
+
+2. **Test your setup**:
+   - Ensure that the API and Kinesis streams are correctly configured.
+   - Feel free to use the provided template - note, this requires hard coding, so as long as you're not posting it anywhere public it is fine to use, otherwise - for  amore security conscious approach for posting anywhere public, please follow the above instructions outlines in step 1.
+
+---
+
+   **Foundational API Test Template Script**:
+    ```python
+        import requests
+        import json
+
+        example_df = {"index": 1, "name": "<test_name>", "age": 25, "role": "engineer"}
+
+        # invoke url for one record, if you want to put more records replace record with records
+        invoke_url = "https://YourAPIInvokeURL/<YourDeploymentStage>/streams/<stream_name>/record"
+
+        #To send JSON messages you need to follow this structure
+        payload = json.dumps({
+            "StreamName": "YourStreamName",
+            "Data": {
+                    #Data should be send as pairs of column_name:value, with different columns separated by commas
+                    "index": example_df["index"], "name": example_df["name"], "age": example_df["age"], "role": example_df["role"]
+                    },
+                    "PartitionKey": "desired-name"
+                    })
+
+        headers = {'Content-Type': 'application/json'}
+
+        response = requests.request("PUT", invoke_url, headers=headers, data=payload)
+
+        # Print the HTTP response code and body
+        print("Status Code:", response.status_code)
+        print("Response Body:", response.text)
+    ```
+
+
+# Troubleshooting & Considerations
+## API Integration Details and Troubleshooting
+
+### Index
+
+- [Content-Type Explanation](#content-type-applicationxamzjson-in-aws-requests)
+
+
+## Content-Type application/x-amz-json in AWS Requests
+
+### Overview
+
+Amazon doesn't explicitly document the `application/x-amz-json` Content-Type, but it relates to the AWS JSON protocols (1.0 and 1.1) defined by Smithy, an open-source language by AWS for defining services.
+
+### When to Use
+
+- **`application/json`**: Used for general JSON data requests.
+- **`application/x-amz-json-1.1` (or other versions)**: Indicates JSON data with additional AWS-specific behaviors, as outlined in the AWS JSON protocol documentation.
+
+### In AWS API Gateway
+
+When making `PATCH`, `PUT`, or `POST` requests to AWS API Gateway, specifying `Content-Type: application/x-amz-json-1.1` (or a similar version) is required. This Content-Type signals the server to handle the request with the expected AWS-specific behavior, which might not be supported with a basic `application/json` Content-Type.
+
+---
+
+## Milestone Troubleshooting Issues
 
 During the development of this project, I encountered several issues that required troubleshooting and adjustments. Below is a summary of the problems I faced and how I resolved them.
 
-# Issues Encountered:
+### Issues Encountered:
 
 #### Milestone 5:
 
-#### "No Authentication Token" Error:
+##### "No Authentication Token" Error
 
 - **Problem**: I received this error because I initially tried to access the base API URL without including the specific topic path. AWS requires requests to be directed to specific endpoints (or "folders") where I have the correct permissions. Attempting to access the base URL directly led to authentication errors.
 - **Impact**: This prevented the API from recognizing the request as authorized, resulting in an authentication error.
 
-#### "Unrecognized Field" Errors:
+##### "Unrecognized Field" Errors
 
 - **Problem**: The API returned errors like `{"error_code":422,"message":"Unrecognized field: ind"}` because the data I was sending included fields that the API did not expect or recognize.
 - **Impact**: These errors caused the API to reject the data since it was not in the correct format or structure that AWS was expecting.
 
-#### Incorrect Payload Structure:
+##### Incorrect Payload Structure
 
 - **Problem**: Initially, the payload I sent to AWS was not formatted according to AWS's expectations. Specifically, AWS expects data to be wrapped in a structure like this:
+
   ```json
   {
     "records": [
@@ -718,26 +1030,33 @@ During the development of this project, I encountered several issues that requir
       }
     ]
   }
+  ```
+
 - **Impact**: Without the correct structure, the API couldn't process the data, leading to errors in data ingestion.
 
 ## How I Fixed These Issues
-#### Correct Targeting of API Endpoints:
+
+### Correct Targeting of API Endpoints
+
 - **Solution**: I updated the code to correctly define and use specific API URLs (`PIN_API_INVOKE_URL`, `GEO_API_INVOKE_URL`, `USER_API_INVOKE_URL`) that point directly to the appropriate Kafka topic endpoints.
 - **Benefit**: By using the full URLs for the specific topics, I avoided the "No Authentication Token" error, as the code now targets the endpoints where my authentication token is valid and I have the necessary permissions.
-#### Filtering and Formatting the Data:
+
+### Filtering and Formatting the Data
+
 - **Solution**: To resolve the issue with unrecognized fields, I ensured that the data sent to the API only contains the fields that are expected. Additionally, I wrapped the payload in the AWS-specific structure:
-```
-json_payload = json.dumps({
-    "records": [
-        {
-            "value": data  
-        }                     
-    ]
-}, default=str)
-```
+
+  ```python
+  json_payload = json.dumps({
+      "records": [
+          {
+              "value": data  
+          }                     
+      ]
+  }, default=str)
+
 - **Benefit**: This ensured that the API received the data in the format it expects, eliminating errors related to unrecognized fields.
 
-#### Proper Payload Structure:
+### Proper Payload Structure
 - **Solution**: I manually serialized the payload into a JSON format that matches AWS's expected structure, specifically placing it within a "records" list where each record contains a "value" key with the data.
 - **Benefit**: Proper formatting allowed AWS to correctly process and ingest the data, ensuring that my application can successfully send data to the Kafka topics without encountering format-related errors.
 
@@ -773,7 +1092,7 @@ pinterest-data-pipeline979/
 └── requirements.txt
 ```
 
-## Security
+## Security Considerations
 Ensure that the below files are not uploaded to your repository by adding them to your .gitignore file:
 >- `__pycache__/`
 >- `db_creds.yaml`
