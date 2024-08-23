@@ -1065,6 +1065,7 @@ During the development of this project, I encountered several issues that requir
 ```
 pinterest-data-pipeline979/
 ├── user_posting_emulation.py
+├── user_posting_emulation_streaming.py
 ├── mount_s3_bucket.ipynb
 ├── M7_Data_Cleaning.ipynb (for DataBricks using spark.sql)
 ├── Querying_Notebook.ipynb (for DataBricks using spark.sql)
