@@ -20,7 +20,7 @@ This project involves setting up an infrastructure that emulates the data proces
   - [Milestone 7: Batch Processing - Spark on Databricks](#milestone-7-batch-processing---spark-on-databricks)
   - [Milestone 8: Batch Processing: AWS MWAA](#milestone-8-batch-processing-aws-mwaa)
   - [Milestone 9: Stream Processing with AWS Kinesis](#milestone-9-stream-processing-with-aws-kinesis)
-- [Troubleshooting & Considerations](#troubleshooting-&-considerations)
+- [Troubleshooting and Considerations](#troubleshooting-and-considerations)
 - [File Structure](#file-structure)
 - [Security](#security-considerations)
 - [License](#license)
@@ -973,7 +973,8 @@ This README will guide you through setting up and configuring your AWS Kinesis s
     ```
 
 
-# Troubleshooting & Considerations
+# Troubleshooting and Considerations
+
 ## API Integration Details and Troubleshooting
 
 ### Index
