@@ -81,11 +81,13 @@ def send_to_kinesis(url: str, stream_name: str, data: dict):
     :param stream_name: The name of the Kinesis stream.
     :param data: The data to be sent as a dictionary.
     """
-    # Serialize the payload to JSON format, including the stream name and partition key
+    print(f"Data before serialization: {data}")
+
+    # Serialize the data directly (as before)
     json_payload = json.dumps({
         "StreamName": stream_name,
-        "Data": json.dumps(data),
-        "PartitionKey": "partition-key"  # Replace with a suitable partition key if needed
+        "Data": data,  # Data is a dictionary with your DataFrame column headers
+        "PartitionKey": "partition-key"  # You can still set a partition key if needed
     })
 
     # Set the necessary headers for the request

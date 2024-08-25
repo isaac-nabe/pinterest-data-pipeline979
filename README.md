@@ -823,7 +823,7 @@ This README will guide you through setting up and configuring your AWS Kinesis s
        }
        ```
 
-   - **Add Records to Stream (PUT)**:
+   - **Add Record to Stream (PUT)**:
      - Resource: `/streams/{stream-name}/record`
      - Integration type: AWS Service
      - AWS Region: `us-east-1`
@@ -833,6 +833,7 @@ This README will guide you through setting up and configuring your AWS Kinesis s
      - Execution Role: `<your_UserId>-kinesis-access-role`
      - Integration request: Add `Content-Type` header as `application/x-amz-json-1.1` (see [Content-Type Explanation](#content-type-applicationxamzjson-in-aws-requests))
      - Mapping Template:
+        **Original had "bug", please see the fix for this here:** [API Gateway Mapping Template Discrepancies](#api-gateway-mapping-template-discrepancies)
        ```json
        {
            "StreamName": "$input.params('stream-name')",
@@ -971,7 +972,61 @@ This README will guide you through setting up and configuring your AWS Kinesis s
         print("Status Code:", response.status_code)
         print("Response Body:", response.text)
     ```
+---
 
+### Task 4: Read Data from Kinesis Streams in Databricks
+
+1. **Load AWS Credentials**
+    - **Objective:** Securely access AWS resources by loading credentials from a Delta table.  
+    - **Action:** Extract the Access Key and Secret Key from the Delta table stored at `dbfs:/user/hive/warehouse/authentication_credentials`.  
+    - **Result:** AWS credentials are ready to be used for accessing Kinesis streams.
+
+2. **Read Data from Kinesis Streams**
+    - **Objective:** Ingest streaming data from Kinesis streams into Databricks.  
+    - **Action:** Use the `readStream` function to read data from the Pinterest, Geolocation, and User streams.  
+    - **Result:** Streaming data is successfully read into three separate DataFrames: `pin_df`, `geo_df`, and `user_df`.
+
+
+3. **Display the Streaming Data**
+    - **Objective:** Visualize the incoming streaming data.  
+    - **Action:** Use the `display` function in Databricks to visualize the data from each stream in real-time.  
+    - **Result:** Streaming data is displayed and monitored continuously.
+
+4. **Deserialize the Data Columns**
+    - **Objective:** Convert the raw streaming data into a readable format.  
+    - **Action:** Cast the `data` column in each DataFrame to a string and examine the JSON content.  
+    - **Result:** Data is prepared for further parsing and transformation.
+
+5. **Parse the JSON Strings**
+    - **Objective:** Convert JSON strings into structured columns.  
+    - **Action:** Define appropriate schemas for each stream and use `from_json` to parse the data.  
+    - **Result:** Parsed DataFrames are created, allowing easier access to individual fields.
+    - **Unexpected Issue**: [API Gateway Mapping Template Discrepancies](#api-gateway-mapping-template-discrepancies)
+
+---
+
+### Task 5: Transform Kinesis Streams in Databricks
+
+1. **Transform the Data**
+    - **Objective:** Clean and preprocess the parsed data to match required formats.  
+    - **Action:** Apply custom data cleaning classes that were previously used for batch processing. Adjust as needed for streaming data.  
+    - **Result:** Cleaned DataFrames (`df_pin_cleaned`, `df_geo_cleaned`, `df_user_cleaned`) are ready for writing to Delta tables.
+
+---
+
+### Task 6: Write the Streaming Data to Delta Tables
+
+1. **Write Cleaned DataFrames to Delta Tables**
+    - **Objective:** Persist the cleaned streaming data into Delta Tables for further analysis and processing.  
+    - **Action:** Use `writeStream` with append mode to write each cleaned DataFrame to its respective Delta Table (`<your_user_ID>_pin_table`, `<your_user_ID>_geo_table`, `<your_user_ID>_user_table`).  
+    - **Result:** Streaming data is continuously written to Delta Tables, maintaining an up-to-date dataset.
+
+2. **Verify the Delta Tables**
+    - **Objective:** Ensure the integrity and correctness of the data written to Delta Tables.  
+    - **Action:** Perform SQL queries to inspect the contents, metadata, history, and row counts of each table.  
+    - **Result:** Delta Tables are verified to contain the expected data, with successful streaming and checkpointing in place.
+
+---
 
 # Troubleshooting and Considerations
 
@@ -1005,7 +1060,7 @@ During the development of this project, I encountered several issues that requir
 
 ### Issues Encountered:
 
-#### Milestone 5:
+### Milestone 5:
 
 ##### "No Authentication Token" Error
 
@@ -1035,14 +1090,14 @@ During the development of this project, I encountered several issues that requir
 
 - **Impact**: Without the correct structure, the API couldn't process the data, leading to errors in data ingestion.
 
-## How I Fixed These Issues
+### My Solutions
 
-### Correct Targeting of API Endpoints
+#### Correct Targeting of API Endpoints
 
 - **Solution**: I updated the code to correctly define and use specific API URLs (`PIN_API_INVOKE_URL`, `GEO_API_INVOKE_URL`, `USER_API_INVOKE_URL`) that point directly to the appropriate Kafka topic endpoints.
 - **Benefit**: By using the full URLs for the specific topics, I avoided the "No Authentication Token" error, as the code now targets the endpoints where my authentication token is valid and I have the necessary permissions.
 
-### Filtering and Formatting the Data
+#### Filtering and Formatting the Data
 
 - **Solution**: To resolve the issue with unrecognized fields, I ensured that the data sent to the API only contains the fields that are expected. Additionally, I wrapped the payload in the AWS-specific structure:
 
@@ -1057,9 +1112,57 @@ During the development of this project, I encountered several issues that requir
 
 - **Benefit**: This ensured that the API received the data in the format it expects, eliminating errors related to unrecognized fields.
 
-### Proper Payload Structure
+#### Proper Payload Structure
 - **Solution**: I manually serialized the payload into a JSON format that matches AWS's expected structure, specifically placing it within a "records" list where each record contains a "value" key with the data.
 - **Benefit**: Proper formatting allowed AWS to correctly process and ingest the data, ensuring that my application can successfully send data to the Kafka topics without encountering format-related errors.
+
+### Milestone 9:
+
+##### Serialization and Deserialization Challenges
+
+One of the main issues encountered was related to the serialization and deserialization methods used in processing streaming data within Databricks. Specifically, the challenge arose when parsing JSON strings from the streaming data, where improper handling led to DataFrames filled with null values. The original approach relied on certain assumptions about the data format, which, combined with the API Gateway Mapping Template configurations, resulted in incomplete or incorrect data being parsed into Spark DataFrames.
+
+##### API Gateway Mapping Template Discrepancies
+
+The API Gateway Mapping Template played a crucial role in how data was transmitted and processed. The two primary approaches differed in their handling of data encoding:
+  
+1. **Original Approach (See Failed Attempt notebook):** This method involved Base64 encoding of the JSON data before transmission. While it served a purpose under certain conditions, it introduced an additional decoding step in Spark, adding complexity and potential points of failure, which contributed to the parsing issues.
+    ```json
+        {
+      "StreamName": "$input.params('stream-name')",
+      "Data": "$util.base64Encode($input.json('$.Data'))",
+      "PartitionKey": "$input.path('$.PartitionKey')"
+  }
+    ```
+    - **Data Handling:** In this template, the data is encoded in Base64 ($util.base64Encode($input.json('$.Data'))). This means the raw JSON data is first encoded into Base64 before being sent to Kinesis.
+    - **Processing in Spark:** When Spark reads the data from Kinesis, it must first decode the Base64-encoded string before it can parse the JSON. This adds an extra step in the processing pipeline.
+
+2. **Solution Approach (See Working Notebook):** This approach did not involve additional encoding, allowing the JSON data to be passed directly to Kinesis and then parsed in Spark. This method maintained data integrity and avoided the complexities of additional processing steps.
+    ```json
+        {
+            "StreamName": "$input.params('stream-name')",
+            "Data": "$input.json('$.Data')",
+            "PartitionKey": "$input.path('$.PartitionKey')"
+        }
+    ```
+    - **Data Handling:** In this template, the data is passed directly in JSON format ($input.json('$.Data')), without any additional encoding. This means the data remains as plain JSON when it's sent to Kinesis.
+    - **Processing in Spark:** When the data is read from Kinesis in Spark, it can be directly cast to a string and then parsed into a structured format using from_json.
+
+
+##### JSON String Parsing Problems
+
+The differences in handling JSON strings between the two approaches became evident during the parsing phase. The original approach’s requirement for Base64 decoding before parsing added unnecessary complexity and resulted in DataFrames where fields were not correctly populated, instead returning null values. Conversely, In the solution's approach, the direct handling of JSON allowed Spark to cast and parse the data without additional processing, leading to correctly populated DataFrames.
+
+##### Data Integrity and Performance Impact
+
+The issue had significant implications for both data integrity and performance. The additional encoding and decoding steps not only risked introducing data corruption but also added overhead to the data processing pipeline, potentially slowing down real-time data ingestion and analysis. The first approach, by eliminating unnecessary steps, proved to be more efficient and robust in maintaining data accuracy.
+
+### My Solution
+
+To resolve the issue, the data processing pipeline was adjusted to align with the first approach, which avoids unnecessary encoding and maintains the JSON data in its original format. This change resulted in correctly parsed DataFrames, restoring the functionality of the data pipeline and ensuring that real-time streaming data could be processed efficiently in Databricks.
+
+In summary, the primary issue was a mismatch in serialization, deserialization, and JSON string parsing methods, compounded by the choice of API Gateway Mapping Template. By reverting to a simpler, more direct approach, the issues were resolved, ensuring accurate and efficient data processing in Databricks.
+
 
 ## File Structure
 
@@ -1070,6 +1173,7 @@ pinterest-data-pipeline979/
 ├── mount_s3_bucket.ipynb
 ├── M7_Data_Cleaning.ipynb (for DataBricks using spark.sql)
 ├── Querying_Notebook.ipynb (for DataBricks using spark.sql)
+├── working_kin_read_write.ipynb (for DataBricks using pyspark & spark.sql)
 ├── user_ID_dag.py (To Upload to Airflow configured s3 bucket)
 ├── .gitignore/
 │   ├── __pycache__/

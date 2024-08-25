@@ -12,3 +12,6 @@ config.py
 
 # Ignores DS Store
 .DS_Store
+
+# ignores old file versions
+OG_user_posting_emulation_streaming.py
