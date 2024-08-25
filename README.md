@@ -1132,8 +1132,9 @@ The API Gateway Mapping Template played a crucial role in how data was transmitt
       "StreamName": "$input.params('stream-name')",
       "Data": "$util.base64Encode($input.json('$.Data'))",
       "PartitionKey": "$input.path('$.PartitionKey')"
-  }
+        }
     ```
+
     - **Data Handling:** In this template, the data is encoded in Base64 ($util.base64Encode($input.json('$.Data'))). This means the raw JSON data is first encoded into Base64 before being sent to Kinesis.
     - **Processing in Spark:** When Spark reads the data from Kinesis, it must first decode the Base64-encoded string before it can parse the JSON. This adds an extra step in the processing pipeline.
 
@@ -1145,6 +1146,7 @@ The API Gateway Mapping Template played a crucial role in how data was transmitt
             "PartitionKey": "$input.path('$.PartitionKey')"
         }
     ```
+    
     - **Data Handling:** In this template, the data is passed directly in JSON format ($input.json('$.Data')), without any additional encoding. This means the data remains as plain JSON when it's sent to Kinesis.
     - **Processing in Spark:** When the data is read from Kinesis in Spark, it can be directly cast to a string and then parsed into a structured format using from_json.
 
