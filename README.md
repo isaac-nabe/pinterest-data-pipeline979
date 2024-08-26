@@ -1172,34 +1172,43 @@ In summary, the primary issue was a mismatch in serialization, deserialization, 
 
 ```
 pinterest-data-pipeline979/
-├── user_posting_emulation.py
-├── user_posting_emulation_streaming.py
-├── mount_s3_bucket.ipynb
-├── M7_Data_Cleaning.ipynb (for DataBricks using spark.sql)
-├── Querying_Notebook.ipynb (for DataBricks using spark.sql)
-├── working_kin_read_write.ipynb (for DataBricks using pyspark & spark.sql)
-├── user_ID_dag.py (To Upload to Airflow configured s3 bucket)
+├── Config etc.
+│   ├── user_ID_dag.py (To Upload to Airflow configured s3 bucket)
+│   ├── db_creds.yaml (*in .gitignore)
+│   ├── config.py (*in .gitignore)
+│   ├── user_id.pem (*in .gitignore)
+│   └── requirements.txt
+├── Databricks
+│   ├── mount_s3_bucket.ipynb
+│   ├── M7_Data_Cleaning.ipynb (for DataBricks using spark.sql)
+│   ├── Querying_Notebook.ipynb (for DataBricks using spark.sql)
+│   └── working_kin_read_write.ipynb (for DataBricks using pyspark & spark.sql)
+├── Python Scripts
+│   ├── user_posting_emulation.py
+│   └──  user_posting_emulation_streaming.py
 ├── .gitignore/
 │   ├── __pycache__/
 │   ├── db_creds.yaml
 │   ├── config.py
+│   ├── .DS_Store
 │   └── user_id.pem
 ├── README.md
-├── README_IMAGES/
-│   ├── m8_task2_result.png
-│   ├── task1_result.png
-│   ├── task2_result.png
-│   ├── task3_result.png
-│   ├── task4_result.png
-│   ├── task5_result.png
-│   ├── task6_1_result.png
-│   ├── task6_2_result.png
-│   ├── task7_result.png
-│   ├── task8_result.png
-│   ├── task9_result.png
-│   ├── task10_result.png
-│   └── task11_result.png
-└── requirements.txt
+└── README_IMAGES/
+    ├── Cloud_Pinterest_Pipeline_UML_Diagram.png
+    ├── m8_task2_result.png
+    ├── task1_result.png
+    ├── task2_result.png
+    ├── task3_result.png
+    ├── task4_result.png
+    ├── task5_result.png
+    ├── task6_1_result.png
+    ├── task6_2_result.png
+    ├── task7_result.png
+    ├── task8_result.png
+    ├── task9_result.png
+    ├── task10_result.png
+    └── task11_result.png
+
 ```
 
 ## Security Considerations
@@ -1208,7 +1217,7 @@ Ensure that the below files are not uploaded to your repository by adding them t
 >- `db_creds.yaml`
 >- `config.py`
 >- `user_id.pem`
->- `DS_Store`
+>- `.DS_Store`
 
 ## License
 
