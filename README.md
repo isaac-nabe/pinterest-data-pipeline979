@@ -6,6 +6,8 @@ Pinterest crunches billions of data points every day to decide how to provide mo
 
 This project involves setting up an infrastructure that emulates the data processing pipeline of Pinterest. You will work with simulated data representing user posts, geolocation information, and user details. The project is divided into milestones, with specific tasks to guide you through the setup.
 
+![Pinterest Cloud Pipeline UML DIagram](./Cloud_Pinterest_Pipeline_UML_Diagram.png)
+
 # Table of Contents
 
 - [Getting Started](#getting-started)
@@ -1146,7 +1148,7 @@ The API Gateway Mapping Template played a crucial role in how data was transmitt
             "PartitionKey": "$input.path('$.PartitionKey')"
         }
     ```
-    
+
     - **Data Handling:** In this template, the data is passed directly in JSON format ($input.json('$.Data')), without any additional encoding. This means the data remains as plain JSON when it's sent to Kinesis.
     - **Processing in Spark:** When the data is read from Kinesis in Spark, it can be directly cast to a string and then parsed into a structured format using from_json.
 
