@@ -6,7 +6,7 @@ Pinterest crunches billions of data points every day to decide how to provide mo
 
 This project involves setting up an infrastructure that emulates the data processing pipeline of Pinterest. You will work with simulated data representing user posts, geolocation information, and user details. The project is divided into milestones, with specific tasks to guide you through the setup.
 
-![Pinterest Cloud Pipeline UML DIagram](./Cloud_Pinterest_Pipeline_UML_Diagram.png)
+![Pinterest Cloud Pipeline UML DIagram](./README_IMAGES/Cloud_Pinterest_Pipeline_UML_Diagram.png)
 
 # Table of Contents
 
